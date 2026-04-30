@@ -665,12 +665,39 @@ async function testGhConfig(){
   if(!cfg.token||!cfg.owner||!cfg.repo){
     if(el){el.textContent='⚠ Remplissez tous les champs.';el.style.color='var(--accent2)';}return;
   }
+  const path=cfg.path||'resultats.csv';
+  const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`;
+  const headers={'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+
   try{
-    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{
-      headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
+    // 1. Check repo access
+    const repoCheck=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{headers});
+    if(!repoCheck.ok){
+      if(el){el.textContent='✗ Erreur '+repoCheck.status+' — vérifiez le token et le nom du dépôt.';el.style.color='var(--accent2)';}
+      return;
+    }
+
+    // 2. Check if CSV already exists
+    const fileCheck=await fetch(api,{headers});
+    if(fileCheck.ok){
+      if(el){el.textContent='✓ Connexion réussie — le fichier CSV existe déjà.';el.style.color='var(--accent)';}
+      return;
+    }
+
+    // 3. File doesn't exist — create it with just the header row
+    const headerRow=buildCSVHeaders(PAIRS.map(p=>({pair:p,x:p[0],y:p[1]}))).map(v=>'"'+v+'"').join(';');
+    const content='\uFEFF'+headerRow+'\n';
+    const encoded=btoa(unescape(encodeURIComponent(content)));
+    const put=await fetch(api,{
+      method:'PUT',headers,
+      body:JSON.stringify({message:'Initialisation du fichier de résultats',content:encoded})
     });
-    if(r.ok){if(el){el.textContent='✓ Connexion réussie — dépôt accessible.';el.style.color='var(--accent)';}}
-    else{if(el){el.textContent='✗ Erreur '+r.status+' — vérifiez le token et le nom du dépôt.';el.style.color='var(--accent2)';}}
+    if(put.ok){
+      if(el){el.textContent='✓ Connexion réussie — fichier CSV créé avec les en-têtes.';el.style.color='var(--accent)';}
+    } else {
+      const err=await put.json();
+      if(el){el.textContent='✗ Erreur lors de la création du CSV : '+(err.message||put.status);el.style.color='var(--accent2)';}
+    }
   }catch(e){
     if(el){el.textContent='✗ Erreur réseau : '+e.message;el.style.color='var(--accent2)';}
   }
