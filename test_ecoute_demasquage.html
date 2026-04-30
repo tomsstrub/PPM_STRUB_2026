@@ -248,11 +248,14 @@ function updateTrackRow(lbl){
 }
 function updateAllTrackRows(){ ['A','B','C','D'].forEach(updateTrackRow); }
 function updateStartBtn(){
-  const btn = document.getElementById('btn-start');
-  if(!btn) return;
-  const ready = ['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
-  btn.disabled = !ready;
-  btn.querySelector('span').textContent = ready ? 'Démarrer le test →' : 'Sélectionnez et testez les 4 fichiers';
+  const btn=document.getElementById('btn-start');
+  if(btn){
+    const ready=['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
+    btn.disabled=!ready;
+    btn.querySelector('span').textContent=ready?'Extraits prêts — retour à l\'accueil':'Chargez les 4 fichiers pour continuer';
+  }
+  // Also refresh welcome page if visible (so Commencer button updates)
+  if(S.phase==='welcome') render();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -300,7 +303,7 @@ const CRITERIA=[
 const PAIRS = ['AB','AC','AD','BC','BD','CD'];
 const SAMPLE_DESC = {A:'Sans changement',B:'Niveau voix augmenté',C:'Sidechain pleine bande',D:'Sidechain multibande'};
 
-let S = {phase:'setup',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
+let S = {phase:'welcome',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
 let lastPhase = null;
 // Single shared playback position — both extracts always stay in sync
 let syncPos = 0;
@@ -316,7 +319,7 @@ function othLbl(){ const t=S.order[S.testIdx]; return S.side==='x'?t.y:t.x; }
 // RENDER
 // ─────────────────────────────────────────────────────────────────────────────
 function render(){
-  const m={setup:tplSetup,welcome:tplWelcome,profile:tplProfile,tutorial:tplTutorial,test:tplTest,done:tplDone,admin:tplAdmin};
+  const m={welcome:tplWelcome,profile:tplProfile,tutorial:tplTutorial,test:tplTest,done:tplDone,admin:tplAdmin};
   const changed = S.phase!==lastPhase; lastPhase=S.phase;
   document.getElementById('app').innerHTML = (changed?'<div class="fade-in">':'<div>') + (m[S.phase]||tplSetup)() + '</div>';
 }
@@ -325,64 +328,35 @@ function topBar(step,total){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SETUP
+// WELCOME — première page vue par les participants
 // ─────────────────────────────────────────────────────────────────────────────
-function tplSetup(){
-  function row(lbl){
-    const st=decodeStatus[lbl], isTesting=testLabel===lbl;
-    let badge='<span class="status-badge" id="badge-'+lbl+'" style="display:none"></span>';
-    if(st==='loading') badge='<span class="status-badge status-loading" id="badge-'+lbl+'"><span class="spin">↻</span> Décodage…</span>';
-    else if(st==='ok'){ const dur=getDuration(lbl),m=Math.floor(dur/60),s=Math.floor(dur%60); badge='<span class="status-badge status-ok" id="badge-'+lbl+'">✓ '+m+':'+String(s).padStart(2,'0')+'</span>'; }
-    else if(st==='err') badge='<span class="status-badge status-err" id="badge-'+lbl+'">✗ Format non supporté</span>';
-    return`<div class="track-row">
-      <span class="track-id">${lbl}</span>
-      <div class="track-info">
-        <div class="${fileNames[lbl]?'track-name':'track-name empty'}" id="fname-${lbl}">${fileNames[lbl]||'Aucun fichier sélectionné'}</div>
-        <div class="track-desc">${SAMPLE_DESC[lbl]}</div>
-      </div>
-      <div class="track-actions">
-        ${badge}
-        <button class="btn-test${isTesting?' playing':''}" id="test-btn-${lbl}" onclick="testPlay('${lbl}')" style="display:${st==='ok'?'':'none'}">${isTesting?'⏹ Stop':'▶ Tester'}</button>
-        <button class="btn-pick">Choisir…<input type="file" accept="audio/*" onchange="handleFile('${lbl}',this)"></button>
-      </div>
-    </div>`;
-  }
-  const ready = ['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
-  return topBar()+`
-  <div class="title-mark">Configuration du test</div>
-  <h1>Démasquage vocal</h1>
-  <p>Sélectionnez vos quatre fichiers audio. La durée s'affiche après décodage — testez la lecture avant de démarrer.</p>
-  <div class="card">
-    ${['A','B','C','D'].map(row).join('')}
-    <div style="margin-top:1.25rem">
-      <div class="note">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier que ce fichier HTML et que la page est servie via un serveur local. Sinon, sélectionnez-les manuellement.</div>
-      <button id="btn-start" class="btn-primary btn-full" onclick="doSetup()" ${ready?'':'disabled'}><span>${ready?'Démarrer le test →':'Sélectionnez et testez les 4 fichiers'}</span></button>
-    </div>
+function tplWelcome(){
+  const filesReady = ['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
+  return`<div class="top-bar"><span class="top-logo">Test d'écoute</span><span></span></div>
+  <div class="title-mark">Étude perceptive</div>
+  <h1>Démasquage de la voix dans le mixage musical</h1>
+  <p>Ce test fait partie d'une recherche sur la perception des techniques de mixage audio. Il s'agit d'étudier comment différents traitements sonores influencent la perception de la voix dans la musique.</p>
+  <p>Vous allez écouter <strong>6 paires d'extraits musicaux</strong> et évaluer pour chaque paire 5 caractéristiques perceptives sur une échelle de 8 crans.</p>
+  <div class="note" style="margin-top:.25rem"><strong>Durée estimée :</strong> 20 à 30 minutes. Utilisez le casque ou le système d'écoute avec lequel vous écoutez habituellement de la musique.</div>
+  <div style="margin-top:1.5rem">
+    <button class="btn-primary btn-full" onclick="startParticipant()" ${filesReady?'':'disabled'}>
+      ${filesReady?'Commencer →':'En attente du chargement des extraits…'}
+    </button>
+    ${!filesReady?'<p style="text-align:center;font-size:12px;color:var(--text3);margin-top:.5rem">Le chercheur doit d\'abord charger les fichiers audio depuis l\'accès chercheur.</p>':''}
   </div>
-  <button class="btn-sm" onclick="accessAdmin()" style="color:var(--text3);border-color:transparent">Accès chercheur — exporter tous les résultats</button>`;
+  <div style="text-align:center;margin-top:3rem">
+    <button onclick="accessAdmin()" style="font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Accès chercheur</button>
+  </div>`;
+}
+function startParticipant(){
+  S.profile={};S.tutoRating=null;
+  S.phase='profile';render();
 }
 function accessAdmin(){
   const code=prompt('Code d\'accès chercheur :');
   if(code===null)return;
   if(code==='2908'){S.phase='admin';render();}
   else{alert('Code incorrect.');}
-}
-function doSetup(){
-  if(testNode){try{testNode.stop();}catch(e){}testNode=null;testLabel=null;}
-  S.phase='welcome'; render();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WELCOME
-// ─────────────────────────────────────────────────────────────────────────────
-function tplWelcome(){
-  return topBar()+`
-  <div class="title-mark">Bienvenue</div>
-  <h1>Test d'écoute comparatif</h1>
-  <p>Vous allez écouter <strong>6 paires d'extraits musicaux</strong> et évaluer 5 caractéristiques perceptives pour chaque paire, sur une échelle de 8 crans.</p>
-  <p>Il n'y a pas de bonne ou mauvaise réponse — nous cherchons votre perception spontanée. Vous pouvez basculer librement entre les deux extraits avant de répondre.</p>
-  <div class="note" style="margin-top:1.25rem"><strong>Important :</strong> utilisez le casque ou le système d'écoute avec lequel vous écoutez habituellement de la musique. Le test dure environ 20 à 30 minutes.</div>
-  <button class="btn-primary btn-full" onclick="S.phase='profile';render()" style="margin-top:1rem">Commencer →</button>`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -602,7 +576,7 @@ function tplDone(){
 }
 function resetForNext(){
   stopActive();
-  S={phase:'setup',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
+  S={phase:'welcome',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
   tutoSide_='x';tutoPlaying_=false;lastPhase=null;syncPos=0;lastSaveOk=false;lastSaveMsg='';
   render();
 }
@@ -612,33 +586,67 @@ function resetForNext(){
 // ─────────────────────────────────────────────────────────────────────────────
 function tplAdmin(){
   const cfg=loadGhConfig();
-  return topBar()+'<button class="btn-sm" onclick="S.phase=\'setup\';render()" style="margin-bottom:1.5rem">← Retour</button>'+`
+  function row(lbl){
+    const st=decodeStatus[lbl], isTesting=testLabel===lbl;
+    let badge='<span class="status-badge" id="badge-'+lbl+'" style="display:none"></span>';
+    if(st==='loading') badge='<span class="status-badge status-loading" id="badge-'+lbl+'"><span class="spin">↻</span> Décodage…</span>';
+    else if(st==='ok'){ const dur=getDuration(lbl),m=Math.floor(dur/60),s=Math.floor(dur%60); badge='<span class="status-badge status-ok" id="badge-'+lbl+'">✓ '+m+':'+String(s).padStart(2,'0')+'</span>'; }
+    else if(st==='err') badge='<span class="status-badge status-err" id="badge-'+lbl+'">✗ Format non supporté</span>';
+    return`<div class="track-row">
+      <span class="track-id">${lbl}</span>
+      <div class="track-info">
+        <div class="${fileNames[lbl]?'track-name':'track-name empty'}" id="fname-${lbl}">${fileNames[lbl]||'Aucun fichier sélectionné'}</div>
+        <div class="track-desc">${SAMPLE_DESC[lbl]}</div>
+      </div>
+      <div class="track-actions">
+        ${badge}
+        <button class="btn-test${isTesting?' playing':''}" id="test-btn-${lbl}" onclick="testPlay('${lbl}')" style="display:${st==='ok'?'':'none'}">${isTesting?'⏹ Stop':'▶ Tester'}</button>
+        <button class="btn-pick">Choisir…<input type="file" accept="audio/*" onchange="handleFile('${lbl}',this)"></button>
+      </div>
+    </div>`;
+  }
+  const ready=['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
+  return topBar()+'<button class="btn-sm" onclick="S.phase=\'welcome\';render()" style="margin-bottom:1.5rem">← Retour</button>'+`
   <h2>Accès chercheur</h2>
+
   <div class="card" style="margin-top:1rem">
-    <h3 style="margin-bottom:1rem">Configuration GitHub</h3>
-    <p style="font-size:13px;margin-bottom:1rem">Les résultats seront ajoutés ligne par ligne dans un fichier CSV de votre dépôt GitHub à chaque fin de test.</p>
+    <h3 style="margin-bottom:1rem">Extraits audio</h3>
+    <p style="font-size:13px;margin-bottom:1rem">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier que ce fichier HTML. Sinon, sélectionnez-les manuellement ci-dessous.</p>
+    ${['A','B','C','D'].map(row).join('')}
+    <button id="btn-start" class="btn-primary btn-full" onclick="goBackReady()" ${ready?'':'disabled'} style="margin-top:1.25rem"><span>${ready?'Extraits prêts — retour à l\'accueil':'Chargez les 4 fichiers pour continuer'}</span></button>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3 style="margin-bottom:.75rem">Configuration GitHub</h3>
+    <div class="note" style="margin-bottom:1rem">
+      <strong>Token requis :</strong> GitHub → Settings → Developer settings → Personal access tokens → <strong>Tokens (classic)</strong> → Generate new token → cochez <strong>repo</strong> (toute la ligne) → Generate token.
+    </div>
     <div style="margin-bottom:.85rem">
-      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Token d'accès personnel (classic, scope <code>repo</code>)</label>
-      <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${cfg.token}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:monospace;background:var(--surface2);color:var(--text);outline:none">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Token d'accès personnel (classic, scope <code>repo</code> complet)</label>
+      <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${cfg.token||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:monospace;background:var(--surface2);color:var(--text);outline:none">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.85rem">
       <div>
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Propriétaire (username)</label>
-        <input id="gh-owner" type="text" placeholder="votre-nom" value="${cfg.owner}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Propriétaire (username GitHub)</label>
+        <input id="gh-owner" type="text" placeholder="votre-nom" value="${cfg.owner||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
       </div>
       <div>
         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Nom du dépôt</label>
-        <input id="gh-repo" type="text" placeholder="test-demasquage" value="${cfg.repo}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
+        <input id="gh-repo" type="text" placeholder="test-demasquage" value="${cfg.repo||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
       </div>
     </div>
     <div style="margin-bottom:1rem">
       <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Chemin du fichier CSV dans le dépôt</label>
-      <input id="gh-path" type="text" placeholder="resultats/resultats.csv" value="${cfg.path}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
+      <input id="gh-path" type="text" placeholder="resultats/resultats.csv" value="${cfg.path||'resultats/resultats.csv'}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
     </div>
     <button class="btn-primary btn-full" onclick="saveGhConfig()">Enregistrer la configuration</button>
-    <button class="btn-full" style="margin-top:.5rem" onclick="testGhConfig()">Tester la connexion</button>
-    <div id="gh-status" style="margin-top:.75rem;font-size:13px;color:var(--text3)"></div>
+    <button class="btn-full" style="margin-top:.5rem" onclick="testGhConfig()">Tester la connexion et créer le CSV</button>
+    <div id="gh-status" style="margin-top:.75rem;font-size:13px;color:var(--text3);line-height:1.5"></div>
   </div>`;
+}
+function goBackReady(){
+  if(testNode){try{testNode.stop();}catch(e){}testNode=null;testLabel=null;}
+  S.phase='welcome';render();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -695,8 +703,12 @@ async function testGhConfig(){
     if(put.ok){
       if(el){el.textContent='✓ Connexion réussie — fichier CSV créé avec les en-têtes.';el.style.color='var(--accent)';}
     } else {
-      const err=await put.json();
-      if(el){el.textContent='✗ Erreur lors de la création du CSV : '+(err.message||put.status);el.style.color='var(--accent2)';}
+      const err=await put.json().catch(()=>({}));
+      let msg='✗ Impossible de créer le fichier CSV ('+put.status+').';
+      if(put.status===403||put.status===422){
+        msg+=' → Vérifiez que votre token est bien de type "classic" avec le scope "repo" entièrement coché (et non "Fine-grained").';
+      }
+      if(el){el.textContent=msg;el.style.color='var(--accent2)';}
     }
   }catch(e){
     if(el){el.textContent='✗ Erreur réseau : '+e.message;el.style.color='var(--accent2)';}
