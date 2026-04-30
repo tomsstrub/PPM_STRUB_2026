@@ -248,13 +248,7 @@ function updateTrackRow(lbl){
 }
 function updateAllTrackRows(){ ['A','B','C','D'].forEach(updateTrackRow); }
 function updateStartBtn(){
-  const btn=document.getElementById('btn-start');
-  if(btn){
-    const ready=['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
-    btn.disabled=!ready;
-    btn.querySelector('span').textContent=ready?'Extraits prêts — retour à l\'accueil':'Chargez les 4 fichiers pour continuer';
-  }
-  // Also refresh welcome page if visible (so Commencer button updates)
+  // Re-render welcome page so the Commencer button reflects current file status
   if(S.phase==='welcome') render();
 }
 
@@ -613,7 +607,6 @@ function tplAdmin(){
     <h3 style="margin-bottom:1rem">Extraits audio</h3>
     <p style="font-size:13px;margin-bottom:1rem">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier que ce fichier HTML. Sinon, sélectionnez-les manuellement ci-dessous.</p>
     ${['A','B','C','D'].map(row).join('')}
-    <button id="btn-start" class="btn-primary btn-full" onclick="goBackReady()" ${ready?'':'disabled'} style="margin-top:1.25rem"><span>${ready?'Extraits prêts — retour à l\'accueil':'Chargez les 4 fichiers pour continuer'}</span></button>
   </div>
 
   <div class="card" style="margin-top:1rem">
@@ -643,10 +636,6 @@ function tplAdmin(){
     <button class="btn-full" style="margin-top:.5rem" onclick="testGhConfig()">Tester la connexion et créer le CSV</button>
     <div id="gh-status" style="margin-top:.75rem;font-size:13px;color:var(--text3);line-height:1.5"></div>
   </div>`;
-}
-function goBackReady(){
-  if(testNode){try{testNode.stop();}catch(e){}testNode=null;testLabel=null;}
-  S.phase='welcome';render();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
