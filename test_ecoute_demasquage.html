@@ -682,7 +682,7 @@ async function testGhConfig(){
     }
 
     // 3. File doesn't exist — create it with just the header row
-    const headerRow=buildCSVHeaders(PAIRS.map(p=>({pair:p,x:p[0],y:p[1]}))).map(v=>'"'+v+'"').join(';');
+    const headerRow=buildCSVHeaders().map(v=>'"'+v+'"').join(';');
     const content='\uFEFF'+headerRow+'\n';
     const encoded=btoa(unescape(encodeURIComponent(content)));
     const put=await fetch(api,{
@@ -709,16 +709,21 @@ async function testGhConfig(){
 // ─────────────────────────────────────────────────────────────────────────────
 let lastSaveOk=false, lastSaveMsg='';
 
-function buildCSVHeaders(ord){
+function buildCSVHeaders(){
+  // Fixed column order — always AB, AC, AD, BC, BD, CD regardless of presentation order
   return ['participant_id','horodatage','age','freq','pop','device','pro','audiophile',
-    ...ord.flatMap(t=>[t.pair+'_premier',...CRITERIA.map(c=>t.pair+'_'+c.id)])];
+    ...PAIRS.flatMap(pair=>[pair+'_premier',...CRITERIA.map(c=>pair+'_'+c.id)])];
 }
 function buildCSVRow(d){
-  const o=d.order;
-  return[d.pid,d.ts,
-    d.profile?.age||'',d.profile?.freq||'',d.profile?.pop||'',
-    d.profile?.device||'',d.profile?.pro||'',d.profile?.audiophile||'',
-    ...o.flatMap(t=>[t.x,...CRITERIA.map(c=>d.ratings?.[t.pair]?.[c.id]||'')])
+  return[d.pid, d.ts,
+    d.profile?.age||'', d.profile?.freq||'', d.profile?.pop||'',
+    d.profile?.device||'', d.profile?.pro||'', d.profile?.audiophile||'',
+    // For each pair in fixed order, look up by pair name (not presentation order)
+    ...PAIRS.flatMap(pair=>{
+      const pairData = d.order?.find(t=>t.pair===pair);
+      const premier = pairData ? pairData.x : pair[0]; // which label was shown first
+      return [premier, ...CRITERIA.map(c=>d.ratings?.[pair]?.[c.id]||'')];
+    })
   ].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';');
 }
 
@@ -741,8 +746,8 @@ async function saveToGitHub(entry){
   }catch(e){}
 
   // 2. Build new content
-  const headers_row=buildCSVHeaders(entry.order).map(v=>'"'+v+'"').join(';');
-  const new_row=buildCSVRow(entry);
+  const headers_row = buildCSVHeaders().map(v=>'"'+v+'"').join(';');
+  const new_row = buildCSVRow(entry);
   let newContent;
   if(existingContent){
     // Append row (skip header if file already exists)
