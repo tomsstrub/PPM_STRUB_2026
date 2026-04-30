@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test d'écoute — Démasquage vocal</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#c8c0b0;--surface:#fff;--surface2:#f0ece5;
+  --text:#1c1917;--text2:#6b6560;--text3:#9a948e;
+  --accent:#2c4a3e;--accent-bg:#eaf0eb;--accent-border:#9dbfa6;
+  --accent2:#8b3a2a;--accent2-bg:#f5eae7;--accent2-border:#d4a090;
+  --border:#e0dbd5;--border2:#ccc6c0;--radius:10px;--radius-sm:6px;
+}
+html,body{min-height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6}
+#app{max-width:680px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.title-mark{font-family:'DM Serif Display',serif;font-size:13px;letter-spacing:.08em;color:var(--accent);text-transform:uppercase;margin-bottom:.75rem}
+h1{font-family:'DM Serif Display',serif;font-size:32px;line-height:1.2;font-weight:400;margin-bottom:1.25rem}
+h2{font-size:20px;font-weight:600;margin-bottom:.75rem}
+h3{font-size:16px;font-weight:600;margin-bottom:.5rem}
+p{color:var(--text2);line-height:1.7;margin-bottom:.75rem}
+p:last-child{margin-bottom:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.25rem}
+.card-sm{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem 1.25rem;margin-bottom:1rem}
+button{font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;padding:10px 18px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+button:hover:not(:disabled){background:var(--surface2)}
+button:active:not(:disabled){transform:scale(.985)}
+button:disabled{opacity:.38;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover:not(:disabled){background:#1e3a2e}
+.btn-full{width:100%;justify-content:center}
+.btn-sm{font-size:13px;padding:7px 14px}
+
+/* File rows */
+.track-row{display:flex;align-items:center;gap:12px;padding:.85rem 0;border-bottom:1px solid var(--border)}
+.track-row:last-of-type{border-bottom:none}
+.track-id{font-size:20px;font-weight:700;color:var(--accent);width:22px;flex-shrink:0}
+.track-info{flex:1;min-width:0}
+.track-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-name.empty{color:var(--text3);font-weight:400}
+.track-desc{font-size:11px;color:var(--text3);margin-top:1px}
+.track-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.btn-pick{position:relative;font-size:12px;padding:6px 12px;overflow:hidden}
+.btn-pick input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.btn-test{font-size:12px;padding:6px 12px}
+.btn-test.playing{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.status-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.status-ok{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.status-err{background:var(--accent2-bg);color:var(--accent2);border:1px solid var(--accent2-border)}
+.status-loading{background:var(--surface2);color:var(--text3);border:1px solid var(--border2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+
+/* Radio */
+.radio-group{display:flex;flex-direction:column;gap:2px}
+label.opt{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;color:var(--text);transition:background .1s}
+label.opt:hover{background:var(--surface2)}
+label.opt input[type=radio]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0}
+label.opt.selected{background:var(--accent-bg);color:var(--accent)}
+
+/* Switch button */
+.switch-wrap{display:flex;flex-direction:column;align-items:center;gap:.65rem;padding:.5rem 0 .25rem}
+.btn-switch{font-size:16px;font-weight:600;padding:14px 40px;border-radius:50px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px;min-width:230px;justify-content:center}
+.btn-switch:hover{background:var(--surface2);border-color:var(--accent-border)}
+.btn-switch.is-playing{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.switch-hint{font-size:12px;color:var(--text3);text-align:center}
+.switch-hint.hint-next{color:var(--accent-border)}
+.btn-pause-link{background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;padding:2px 6px;text-decoration:underline;text-underline-offset:2px;font-family:'Plus Jakarta Sans',sans-serif}
+.btn-pause-link:hover{color:var(--text2);background:none}
+.play-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;animation:blink 1.3s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* Scale */
+.scale-wrap{margin-top:.75rem}
+.scale-labels{display:flex;justify-content:space-between;margin-bottom:6px}
+.scale-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.02em}
+.scale-cells{display:flex;gap:3px}
+.sc{flex:1;height:46px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text2);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;cursor:pointer;transition:all .12s}
+.sc:hover:not(.sel-a):not(.sel-b){background:var(--surface2);border-color:var(--border2)}
+.sc.sel-a{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}
+.sc.sel-b{background:var(--accent2)!important;border-color:var(--accent2)!important;color:#fff!important}
+
+/* Dots */
+.dots{display:flex;gap:6px;margin-bottom:2rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s}
+.dot.done{background:var(--accent-border)}
+.dot.active{background:var(--accent);width:24px;border-radius:4px}
+
+/* Misc */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.note{background:var(--surface2);border-left:3px solid var(--accent-border);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.75rem 1rem;font-size:13px;color:var(--text2);margin-bottom:1rem}
+.results-table{width:100%;border-collapse:collapse;font-size:12px}
+.results-table th{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.results-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+.results-table tr:last-child td{border-bottom:none}
+.mono{font-family:'DM Mono',monospace;font-size:12px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .25s ease}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+.top-logo{font-family:'DM Serif Display',serif;font-size:15px;color:var(--text)}
+.top-step{font-size:12px;color:var(--text3);font-weight:500}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// WEB AUDIO ENGINE
+// Uses AudioContext + AudioBufferSourceNode — works 100% with local files,
+// no MIME detection, no CORS, no <audio> element quirks.
+// ─────────────────────────────────────────────────────────────────────────────
+let actx = null;
+function getCtx(){
+  if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended') actx.resume();
+  return actx;
+}
+
+// Decoded AudioBuffer per label
+const buffers = {A:null,B:null,C:null,D:null};
+const fileNames = {A:null,B:null,C:null,D:null};
+const decodeStatus = {A:null,B:null,C:null,D:null}; // null|'loading'|'ok'|'err'
+
+// Playback state
+let activeNode = null;   // current AudioBufferSourceNode
+let activeLabel = null;  // label currently routed to activeNode
+let activePosOffset = 0; // seconds: where we paused
+let activeStartedAt = 0; // actx.currentTime when play() was called
+let isPlaying = false;
+
+// Test playback (setup screen)
+let testNode = null;
+let testLabel = null;
+
+function getDuration(lbl){ return buffers[lbl] ? buffers[lbl].duration : 0; }
+function getCurrentPos(){
+  if(!isPlaying) return activePosOffset;
+  return activePosOffset + (getCtx().currentTime - activeStartedAt);
+}
+
+function stopActive(){
+  if(activeNode){try{activeNode.stop();}catch(e){}activeNode=null;}
+  isPlaying=false;
+}
+
+function playFrom(lbl, offsetSec, onended){
+  stopActive();
+  const ctx = getCtx();
+  const buf = buffers[lbl];
+  if(!buf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.onended = ()=>{
+    // only fire if this is still the active node (not stopped manually)
+    if(activeNode===src){ isPlaying=false; activeNode=null; if(onended)onended(); }
+  };
+  const safeOffset = Math.max(0, Math.min(offsetSec, buf.duration - 0.01));
+  src.start(0, safeOffset);
+  activeNode = src;
+  activeLabel = lbl;
+  activePosOffset = safeOffset;
+  activeStartedAt = ctx.currentTime;
+  isPlaying = true;
+}
+
+function pauseActive(){
+  if(!isPlaying) return;
+  activePosOffset = getCurrentPos();
+  stopActive();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE LOADING
+// ─────────────────────────────────────────────────────────────────────────────
+function handleFile(lbl, input){
+  const file = input.files[0];
+  if(!file) return;
+  fileNames[lbl] = file.name;
+  decodeStatus[lbl] = 'loading';
+  updateTrackRow(lbl);
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    // decodeAudioData handles any browser-supported format (MP3, WAV, AAC…)
+    getCtx().decodeAudioData(
+      e.target.result,
+      decoded => {
+        buffers[lbl] = decoded;
+        decodeStatus[lbl] = 'ok';
+        updateTrackRow(lbl);
+        updateStartBtn();
+      },
+      err => {
+        decodeStatus[lbl] = 'err';
+        updateTrackRow(lbl);
+      }
+    );
+  };
+  reader.onerror = () => { decodeStatus[lbl]='err'; updateTrackRow(lbl); };
+  reader.readAsArrayBuffer(file);
+}
+
+function testPlay(lbl){
+  if(decodeStatus[lbl]!=='ok') return;
+  // Stop any ongoing test
+  if(testNode){try{testNode.stop();}catch(e){}testNode=null;}
+  // Stop main playback too
+  if(isPlaying) stopActive();
+  const ctx = getCtx();
+  const src = ctx.createBufferSource();
+  src.buffer = buffers[lbl];
+  src.connect(ctx.destination);
+  testLabel = lbl;
+  src.onended = ()=>{ if(testNode===src){testNode=null;testLabel=null;updateAllTrackRows();} };
+  src.start(0, 0);
+  testNode = src;
+  // Auto-stop after 4 s
+  setTimeout(()=>{ if(testNode===src){try{src.stop();}catch(e){}testNode=null;testLabel=null;updateAllTrackRows(); } }, 4000);
+  updateAllTrackRows();
+}
+
+function updateTrackRow(lbl){
+  const badge = document.getElementById('badge-'+lbl);
+  const name  = document.getElementById('fname-'+lbl);
+  const testBtn = document.getElementById('test-btn-'+lbl);
+  const st = decodeStatus[lbl];
+  if(name){ name.textContent = fileNames[lbl]||'Aucun fichier sélectionné'; name.className = fileNames[lbl]?'track-name':'track-name empty'; }
+  if(badge){
+    if(st==='loading'){ badge.innerHTML='<span class="spin">↻</span> Décodage…'; badge.className='status-badge status-loading'; badge.style.display=''; }
+    else if(st==='ok'){
+      const dur = getDuration(lbl);
+      const m=Math.floor(dur/60), s=Math.floor(dur%60);
+      badge.textContent='✓ '+m+':'+String(s).padStart(2,'0'); badge.className='status-badge status-ok'; badge.style.display='';
+    }
+    else if(st==='err'){ badge.textContent='✗ Format non supporté'; badge.className='status-badge status-err'; badge.style.display=''; }
+    else{ badge.style.display='none'; }
+  }
+  if(testBtn){
+    testBtn.style.display = st==='ok' ? '' : 'none';
+    testBtn.classList.toggle('playing', testLabel===lbl);
+    testBtn.textContent = testLabel===lbl ? '⏹ Stop' : '▶ Tester';
+  }
+  updateStartBtn();
+}
+function updateAllTrackRows(){ ['A','B','C','D'].forEach(updateTrackRow); }
+function updateStartBtn(){
+  const btn = document.getElementById('btn-start');
+  if(!btn) return;
+  const ready = ['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
+  btn.disabled = !ready;
+  btn.querySelector('span').textContent = ready ? 'Démarrer le test →' : 'Sélectionnez et testez les 4 fichiers';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO-LOAD default files (testA.mp3 … testD.mp3) from same directory
+// Works when served via HTTP (python3 -m http.server).
+// Falls back silently to manual file picker if fetch fails (file:// protocol).
+// ─────────────────────────────────────────────────────────────────────────────
+const DEFAULT_FILES = {A:'testA.mp3', B:'testB.mp3', C:'testC.mp3', D:'testD.mp3'};
+
+function autoLoadFiles(){
+  ['A','B','C','D'].forEach(lbl=>{
+    const name = DEFAULT_FILES[lbl];
+    decodeStatus[lbl] = 'loading';
+    fetch(name)
+      .then(r=>{
+        if(!r.ok) throw new Error('not found');
+        return r.arrayBuffer();
+      })
+      .then(buf=>{
+        getCtx().decodeAudioData(buf, decoded=>{
+          buffers[lbl] = decoded;
+          fileNames[lbl] = name;
+          decodeStatus[lbl] = 'ok';
+          updateTrackRow(lbl);
+          updateStartBtn();
+        }, ()=>{
+          decodeStatus[lbl] = null; // decode failed, show picker
+          updateTrackRow(lbl);
+        });
+      })
+      .catch(()=>{
+        decodeStatus[lbl] = null; // fetch failed (file:// or missing), show picker
+        updateTrackRow(lbl);
+      });
+  });
+}
+autoLoadFiles();
+const CRITERIA=[
+  {id:'preference',    q:'Quel extrait préférez-vous ?'},
+  {id:'niveau',        q:'Dans quel extrait la voix vous paraît-elle la plus forte ?'},
+  {id:'intelligibilite',q:'Dans quel extrait la voix vous paraît-elle la plus intelligible ?'},
+  {id:'expressivite',  q:'Quel extrait vous paraît être le plus expressif ?'},
+  {id:'equilibre',     q:'Quel extrait vous paraît être le plus équilibré ?'},
+];
+const PAIRS = ['AB','AC','AD','BC','BD','CD'];
+const SAMPLE_DESC = {A:'Sans changement',B:'Niveau voix augmenté',C:'Sidechain pleine bande',D:'Sidechain multibande'};
+
+let S = {phase:'setup',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
+let lastPhase = null;
+// Single shared playback position — both extracts always stay in sync
+let syncPos = 0;
+
+let audioCtxTuto=null, tutoNode_=null, tutoSide_='x', tutoPlaying_=false;
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b;}
+function initOrder(){S.order=shuffle(PAIRS).map(p=>{const[a,b]=p.split('');const flip=Math.random()<.5;return{pair:p,x:flip?b:a,y:flip?a:b};});}
+function curLbl(){ const t=S.order[S.testIdx]; return S.side==='x'?t.x:t.y; }
+function othLbl(){ const t=S.order[S.testIdx]; return S.side==='x'?t.y:t.x; }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function render(){
+  const m={setup:tplSetup,welcome:tplWelcome,profile:tplProfile,tutorial:tplTutorial,test:tplTest,done:tplDone,admin:tplAdmin};
+  const changed = S.phase!==lastPhase; lastPhase=S.phase;
+  document.getElementById('app').innerHTML = (changed?'<div class="fade-in">':'<div>') + (m[S.phase]||tplSetup)() + '</div>';
+}
+function topBar(step,total){
+  return`<div class="top-bar"><span class="top-logo">Test d'écoute</span><span class="top-step">${step?'Étape '+step+' / '+total:'Configuration'}</span></div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETUP
+// ─────────────────────────────────────────────────────────────────────────────
+function tplSetup(){
+  function row(lbl){
+    const st=decodeStatus[lbl], isTesting=testLabel===lbl;
+    let badge='<span class="status-badge" id="badge-'+lbl+'" style="display:none"></span>';
+    if(st==='loading') badge='<span class="status-badge status-loading" id="badge-'+lbl+'"><span class="spin">↻</span> Décodage…</span>';
+    else if(st==='ok'){ const dur=getDuration(lbl),m=Math.floor(dur/60),s=Math.floor(dur%60); badge='<span class="status-badge status-ok" id="badge-'+lbl+'">✓ '+m+':'+String(s).padStart(2,'0')+'</span>'; }
+    else if(st==='err') badge='<span class="status-badge status-err" id="badge-'+lbl+'">✗ Format non supporté</span>';
+    return`<div class="track-row">
+      <span class="track-id">${lbl}</span>
+      <div class="track-info">
+        <div class="${fileNames[lbl]?'track-name':'track-name empty'}" id="fname-${lbl}">${fileNames[lbl]||'Aucun fichier sélectionné'}</div>
+        <div class="track-desc">${SAMPLE_DESC[lbl]}</div>
+      </div>
+      <div class="track-actions">
+        ${badge}
+        <button class="btn-test${isTesting?' playing':''}" id="test-btn-${lbl}" onclick="testPlay('${lbl}')" style="display:${st==='ok'?'':'none'}">${isTesting?'⏹ Stop':'▶ Tester'}</button>
+        <button class="btn-pick">Choisir…<input type="file" accept="audio/*" onchange="handleFile('${lbl}',this)"></button>
+      </div>
+    </div>`;
+  }
+  const ready = ['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
+  return topBar()+`
+  <div class="title-mark">Configuration du test</div>
+  <h1>Démasquage vocal</h1>
+  <p>Sélectionnez vos quatre fichiers audio. La durée s'affiche après décodage — testez la lecture avant de démarrer.</p>
+  <div class="card">
+    ${['A','B','C','D'].map(row).join('')}
+    <div style="margin-top:1.25rem">
+      <div class="note">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier que ce fichier HTML et que la page est servie via un serveur local. Sinon, sélectionnez-les manuellement.</div>
+      <button id="btn-start" class="btn-primary btn-full" onclick="doSetup()" ${ready?'':'disabled'}><span>${ready?'Démarrer le test →':'Sélectionnez et testez les 4 fichiers'}</span></button>
+    </div>
+  </div>
+  <button class="btn-sm" onclick="accessAdmin()" style="color:var(--text3);border-color:transparent">Accès chercheur — exporter tous les résultats</button>`;
+}
+function accessAdmin(){
+  const code=prompt('Code d\'accès chercheur :');
+  if(code===null)return;
+  if(code==='2908'){S.phase='admin';render();}
+  else{alert('Code incorrect.');}
+}
+function doSetup(){
+  if(testNode){try{testNode.stop();}catch(e){}testNode=null;testLabel=null;}
+  S.phase='welcome'; render();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WELCOME
+// ─────────────────────────────────────────────────────────────────────────────
+function tplWelcome(){
+  return topBar()+`
+  <div class="title-mark">Bienvenue</div>
+  <h1>Test d'écoute comparatif</h1>
+  <p>Vous allez écouter <strong>6 paires d'extraits musicaux</strong> et évaluer 5 caractéristiques perceptives pour chaque paire, sur une échelle de 8 crans.</p>
+  <p>Il n'y a pas de bonne ou mauvaise réponse — nous cherchons votre perception spontanée. Vous pouvez basculer librement entre les deux extraits avant de répondre.</p>
+  <div class="note" style="margin-top:1.25rem"><strong>Important :</strong> utilisez le casque ou le système d'écoute avec lequel vous écoutez habituellement de la musique. Le test dure environ 20 à 30 minutes.</div>
+  <button class="btn-primary btn-full" onclick="S.phase='profile';render()" style="margin-top:1rem">Commencer →</button>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILE
+// ─────────────────────────────────────────────────────────────────────────────
+function tplProfile(){
+  function rg(name,vals){
+    return'<div class="radio-group">'+vals.map(v=>`<label class="opt ${S.profile[name]===v?'selected':''}"><input type="radio" name="${name}" value="${v}" ${S.profile[name]===v?'checked':''} onchange="pickProfile('${name}','${v}')">${v}</label>`).join('')+'</div>';
+  }
+  const qs=[
+    {name:'age',q:'1. Quel est votre âge ?',type:'number'},
+    {name:'freq', q:'2. À quelle fréquence écoutez-vous de la musique ?',opts:['Plusieurs heures par jour','Un peu tous les jours','Un peu chaque semaine','Un peu chaque mois']},
+    {name:'pop',  q:'3. Êtes-vous amateur·ice de musiques actuelles (pop, rap) ?',opts:['Oui','Un peu','Non']},
+    {name:'device',q:'4. Avec quel appareil écoutez-vous principalement votre musique ?',opts:['Casque ou écouteurs','Enceintes','Téléphone (haut-parleur)','Ordinateur (haut-parleur)']},
+    {name:'pro',  q:'5. Exercez-vous un métier en rapport avec la technique sonore ?',opts:['Oui','Non']},
+    {name:'audiophile',q:'6. Vous considérez-vous comme audiophile ?',opts:['Oui','Un peu','Non']},
+  ];
+  return topBar(1,3)+`<h2>Votre profil</h2>
+  <p style="margin-bottom:1.5rem">Ces informations restent anonymes et servent uniquement à caractériser l'échantillon.</p>
+  ${qs.map(q=>q.type==='number'
+    ?`<div class="card-sm"><h3 style="margin-bottom:.75rem">${q.q}</h3><input type="number" min="1" max="120" placeholder="Votre âge" value="${S.profile[q.name]||''}" oninput="S.profile['${q.name}']=this.value" style="width:140px;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;background:var(--surface2);color:var(--text);outline:none"></div>`
+    :`<div class="card-sm"><h3 style="margin-bottom:.75rem">${q.q}</h3>${rg(q.name,q.opts)}</div>`
+  ).join('')}
+  <button class="btn-primary btn-full" onclick="doProfile()" style="margin-top:.5rem">Continuer →</button>`;
+}
+function pickProfile(name,val){
+  S.profile[name]=val;
+  document.querySelectorAll('input[name="'+name+'"]').forEach(el=>{el.closest('label')?.classList.toggle('selected',el.value===val);});
+}
+function doProfile(){
+  if(['age','freq','pop','device','pro','audiophile'].some(k=>!S.profile[k])){alert('Veuillez répondre à toutes les questions avant de continuer.');return;}
+  S.phase='tutorial';render();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TUTORIAL (oscillator tones — no file dependency)
+// ─────────────────────────────────────────────────────────────────────────────
+function tplTutorial(){
+  return topBar(2,3)+`
+  <h2>Tutoriel</h2>
+  <p>Familiarisez-vous avec les contrôles. Ici, <strong>A</strong> = son de trompette, <strong>B</strong> = son de guitare.</p>
+  <div class="card">
+    <h3 style="margin-bottom:.5rem;font-size:13px;font-weight:600;color:var(--text2);letter-spacing:.04em;text-transform:uppercase">Lecteur comparatif</h3>
+    <p style="font-size:13px;margin-bottom:1.25rem">Cliquez le bouton pour écouter. Cliquez à nouveau pour basculer vers l'autre extrait.</p>
+    <div class="switch-wrap" id="tuto-player">${tutoPlayerHtml()}</div>
+    <div style="border-top:1px solid var(--border);margin:1.25rem 0"></div>
+    <h3 style="margin-bottom:.25rem">Exemple d'évaluation</h3>
+    <p style="font-size:13px;margin-bottom:.75rem">Quel son préférez-vous ? Cliquez une case.</p>
+    ${scaleHtml('tuto',S.tutoRating,'A','B')}
+  </div>
+  <button class="btn-primary btn-full" onclick="startTests()">Commencer les 6 comparaisons →</button>`;
+}
+function tutoPlayerHtml(){
+  const isX=tutoSide_==='x', cl=isX?'A':'B', ol=isX?'B':'A';
+  return`<button class="btn-switch ${tutoPlaying_?'is-playing':''}" onclick="onTutoSwitch()">
+    ${tutoPlaying_?'<span class="play-dot"></span>':''}Extrait ${cl}
+  </button>
+  <div style="min-height:20px">${tutoPlaying_?'<button class="btn-pause-link" onclick="pauseTuto()">Pause</button>':'<span class="switch-hint">Cliquez pour écouter l\'extrait '+cl+'</span>'}</div>
+  <span class="switch-hint hint-next">Cliquer à nouveau → bascule vers Extrait ${ol}</span>`;
+}
+function getTutoCtx(){
+  if(!audioCtxTuto) audioCtxTuto=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtxTuto.state==='suspended') audioCtxTuto.resume();
+  return audioCtxTuto;
+}
+function makeTone(freq,type){
+  const ctx=getTutoCtx();
+  if(tutoNode_){try{tutoNode_.stop();}catch(e){}tutoNode_=null;}
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.value=0.2;
+  o.connect(g);g.connect(ctx.destination);o.start();tutoNode_=o;return o;
+}
+function stopTone(){if(tutoNode_){try{tutoNode_.stop();}catch(e){}tutoNode_=null;}}
+function onTutoSwitch(){
+  getTutoCtx(); // ensure context exists after user gesture
+  if(tutoPlaying_){stopTone();tutoSide_=tutoSide_==='x'?'y':'x';}
+  const n=makeTone(tutoSide_==='x'?494:330,tutoSide_==='x'?'sawtooth':'triangle');
+  tutoPlaying_=true;
+  setTimeout(()=>{if(tutoNode_===n){stopTone();tutoPlaying_=false;refreshTutoPlayer();}},3000);
+  refreshTutoPlayer();
+}
+function pauseTuto(){stopTone();tutoPlaying_=false;refreshTutoPlayer();}
+function refreshTutoPlayer(){const el=document.getElementById('tuto-player');if(el)el.innerHTML=tutoPlayerHtml();}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCALE (direct DOM, no re-render)
+// ─────────────────────────────────────────────────────────────────────────────
+function scaleHtml(cid,val,lx,ly){
+  const cells=Array.from({length:8},(_,i)=>i+1).map(n=>{
+    const cls=val===n?(n<=4?'sc sel-a':'sc sel-b'):'sc';
+    return`<button class="${cls}" onclick="rate('${cid}',${n})">${n}</button>`;
+  }).join('');
+  return`<div class="scale-wrap"><div class="scale-labels"><span class="scale-label">← Tot. ${lx}</span><span class="scale-label" style="font-size:10px">A = B</span><span class="scale-label">Tot. ${ly} →</span></div><div class="scale-cells" data-scale="${cid}">${cells}</div></div>`;
+}
+function rate(cid,val){
+  if(cid==='tuto'){S.tutoRating=val;}
+  else{const t=S.order[S.testIdx];if(!S.ratings[t.pair])S.ratings[t.pair]={};S.ratings[t.pair][cid]=val;}
+  const row=document.querySelector('.scale-cells[data-scale="'+cid+'"]');
+  if(row) row.querySelectorAll('.sc').forEach((el,i)=>{el.classList.remove('sel-a','sel-b');if(i+1===val)el.classList.add(i+1<=4?'sel-a':'sel-b');});
+  if(cid!=='tuto'){
+    const t=S.order[S.testIdx], allRated=CRITERIA.every(c=>S.ratings[t.pair]?.[c.id]!=null);
+    const btn=document.getElementById('btn-next'); if(btn) btn.disabled=!allRated;
+    const hint=document.getElementById('rate-hint'); if(hint) hint.style.display=allRated?'none':'block';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEST PLAYBACK
+// ─────────────────────────────────────────────────────────────────────────────
+function startTests(){
+  stopTone();tutoPlaying_=false;
+  stopActive();
+  syncPos=0;
+  initOrder();S.testIdx=0;S.side='x';S.ratings={};S.phase='test';
+  render();
+}
+
+function playerHtml(){
+  const label1 = S.side==='x' ? 'Extrait 1' : 'Extrait 2';
+  const label2 = S.side==='x' ? 'Extrait 2' : 'Extrait 1';
+  return`<div class="switch-wrap">
+    <button class="btn-switch ${isPlaying?'is-playing':''}" onclick="onSwitch()">
+      ${isPlaying?'<span class="play-dot"></span>':''}${label1}
+    </button>
+    <div style="display:flex;align-items:center;gap:16px;min-height:20px">
+      ${isPlaying?'<button class="btn-pause-link" onclick="togglePause()">Pause</button>':'<span class="switch-hint">Cliquez pour écouter '+label1+'</span>'}
+      <button class="btn-pause-link" onclick="restartPlay()">↺ Recommencer depuis le début</button>
+    </div>
+    <span class="switch-hint hint-next">Cliquer à nouveau → bascule vers ${label2}</span>
+  </div>`;
+}
+function restartPlay(){
+  getCtx();
+  syncPos=0;
+  stopActive();
+  playFrom(curLbl(), 0, ()=>{renderPlayer();});
+  renderPlayer();
+}
+function renderPlayer(){
+  const el=document.getElementById('player-inner');
+  if(el&&S.phase==='test') el.innerHTML=playerHtml();
+}
+
+function onSwitch(){
+  getCtx();
+  if(isPlaying){
+    // Capture exact current position before stopping
+    syncPos = getCurrentPos();
+    stopActive();
+    // Switch side and resume from the exact same position
+    S.side = S.side==='x'?'y':'x';
+    playFrom(curLbl(), syncPos, ()=>{renderPlayer();});
+  } else {
+    // Not playing yet — just start from current syncPos
+    playFrom(curLbl(), syncPos, ()=>{renderPlayer();});
+  }
+  renderPlayer();
+}
+
+function togglePause(){
+  getCtx();
+  if(isPlaying){
+    syncPos = getCurrentPos();
+    pauseActive();
+    renderPlayer();
+  } else {
+    playFrom(curLbl(), syncPos, ()=>{renderPlayer();});
+    renderPlayer();
+  }
+}
+
+function tplTest(){
+  const t=S.order[S.testIdx], r=S.ratings[t.pair]||{}, allRated=CRITERIA.every(c=>r[c.id]!=null);
+  const dots=Array.from({length:6},(_,i)=>`<div class="dot ${i<S.testIdx?'done':i===S.testIdx?'active':''}"></div>`).join('');
+  return`<div class="top-bar"><span class="top-logo">Test d'écoute</span><span class="top-step">Comparaison ${S.testIdx+1} / 6</span></div>
+  <div class="dots">${dots}</div>
+  <div style="margin-bottom:1.5rem"></div>
+  <div class="card">
+    <h3 style="margin-bottom:.5rem;font-size:13px;font-weight:600;color:var(--text2);letter-spacing:.04em;text-transform:uppercase">Lecteur comparatif</h3>
+    <p style="font-size:13px;margin-bottom:1.25rem">Basculez librement entre les extraits. La position temporelle est conservée.</p>
+    <div id="player-inner">${playerHtml()}</div>
+  </div>
+  ${CRITERIA.map(c=>`<div class="card-sm"><h3 style="margin-bottom:.75rem">${c.q}</h3>${scaleHtml(c.id,r[c.id]||null,'1','2')}</div>`).join('')}
+  <div style="margin-top:1rem">
+    <button id="btn-next" class="btn-primary btn-full" onclick="nextTest()" ${allRated?'':'disabled'}>${S.testIdx<5?'Comparaison suivante →':'Terminer le test →'}</button>
+    <p id="rate-hint" style="text-align:center;font-size:13px;color:var(--text3);margin-top:.5rem;display:${allRated?'none':'block'}">Évaluez les ${CRITERIA.length} critères pour continuer</p>
+  </div>`;
+}
+
+function nextTest(){
+  stopActive();
+  syncPos=0;
+  S.side='x';
+  if(S.testIdx<5){S.testIdx++;}
+  else{saveToStorage();S.phase='done';}
+  render();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DONE
+// ─────────────────────────────────────────────────────────────────────────────
+function tplDone(){
+  return topBar(3,3)+`
+  <div class="title-mark">Terminé</div>
+  <h1>Merci pour votre participation !</h1>
+  <p>Vos réponses ont bien été enregistrées et contribueront à cette recherche sur la perception du mixage audio.</p>
+  <p>Vous pouvez maintenant fermer cette fenêtre.</p>
+  <div class="card" style="margin-top:1.5rem;text-align:center;padding:2rem 1.5rem">
+    <div style="font-size:36px;margin-bottom:1rem">🎧</div>
+    <p style="font-size:14px;color:var(--text2);margin:0">6 comparaisons complétées · ${CRITERIA.length} critères évalués</p>
+  </div>
+  <button class="btn-full" onclick="resetForNext()" style="margin-top:.75rem;color:var(--text2)">Nouveau participant →</button>`;
+}
+function resetForNext(){
+  stopActive();
+  S={phase:'setup',profile:{},order:[],testIdx:0,side:'x',ratings:{},tutoRating:null};
+  tutoSide_='x';tutoPlaying_=false;lastPhase=null;syncPos=0;
+  render();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────────────────────────────────────
+function tplAdmin(){
+  const all=loadAllFromStorage(), count=all.length;
+  if(!count) return topBar()+'<button class="btn-sm" onclick="S.phase=\'setup\';render()" style="margin-bottom:1.5rem">← Retour</button><h2>Accès chercheur</h2><div class="note" style="margin-top:1rem">Aucun résultat enregistré sur cet appareil.</div>';
+  const last=new Date(all[all.length-1].ts).toLocaleString('fr-FR');
+  return topBar()+'<button class="btn-sm" onclick="S.phase=\'setup\';render()" style="margin-bottom:1.5rem">← Retour</button>'+`
+  <h2>Accès chercheur</h2>
+  <div class="card" style="margin-top:1rem">
+    <div style="display:flex;gap:2rem">
+      <div><div style="font-size:28px;font-weight:600;color:var(--accent)">${count}</div><div style="font-size:13px;color:var(--text2)">participant${count>1?'s':''}</div></div>
+      <div><div style="font-size:13px;font-weight:600;margin-bottom:2px">Dernier enregistrement</div><div style="font-size:13px;color:var(--text2)">${last}</div></div>
+    </div>
+  </div>
+  <button class="btn-primary btn-full" onclick="downloadAllCSV()">Télécharger tous les résultats (CSV agrégé)</button>
+  <button class="btn-full" onclick="if(confirm('Supprimer tous les résultats ? Irréversible.')){clearStorage();render();}" style="margin-top:.75rem;color:var(--accent2);border-color:var(--accent2-border)">Effacer tous les résultats</button>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STORAGE / CSV
+// ─────────────────────────────────────────────────────────────────────────────
+function saveToStorage(){
+  try{const k='demasquage_results',ex=JSON.parse(localStorage.getItem(k)||'[]');
+  ex.push({pid:'P_'+Date.now(),ts:new Date().toISOString(),profile:S.profile,order:S.order,ratings:S.ratings});
+  localStorage.setItem(k,JSON.stringify(ex));}catch(e){}
+}
+function loadAllFromStorage(){try{return JSON.parse(localStorage.getItem('demasquage_results')||'[]');}catch(e){return[];}}
+function clearStorage(){localStorage.removeItem('demasquage_results');}
+function buildCSV(entries){
+  const ord=entries[0]?.order||PAIRS.map(p=>({pair:p,x:p[0],y:p[1]}));
+  const headers=['participant_id','horodatage','age','freq','pop','device','pro','audiophile',...ord.flatMap(t=>[t.pair+'_premier',...CRITERIA.map(c=>t.pair+'_'+c.id)])];
+  const rows=entries.map(d=>{const o=d.order||ord;return[d.pid,d.ts,d.profile?.age||'',d.profile?.freq||'',d.profile?.pop||'',d.profile?.device||'',d.profile?.pro||'',d.profile?.audiophile||'',...o.flatMap(t=>[t.x,...CRITERIA.map(c=>d.ratings?.[t.pair]?.[c.id]||'')])];});
+  return[headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');
+}
+function triggerDownload(csv,fn){
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);
+}
+function downloadCSV(){
+  const e={pid:'P_'+Date.now(),ts:new Date().toISOString(),profile:S.profile,order:S.order,ratings:S.ratings};
+  triggerDownload(buildCSV([e]),'resultats_'+e.pid+'.csv');
+}
+function downloadAllCSV(){
+  const all=loadAllFromStorage();if(!all.length){alert('Aucun résultat à exporter.');return;}
+  triggerDownload(buildCSV(all),'resultats_agregés_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+
+render();
+</script>
+</body>
+</html>
