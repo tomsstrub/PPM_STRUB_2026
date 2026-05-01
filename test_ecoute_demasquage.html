@@ -653,15 +653,20 @@ function tplAdmin(){
 function loadGhConfig(){
   try{
     const stored=JSON.parse(localStorage.getItem('gh_config')||'{}');
+    // If stored token matches old revoked token, clear it
+    if(stored.token==='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'){
+      localStorage.removeItem('gh_config');
+      return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
+    }
     // Default values — used if not yet configured via admin panel
     return {
-      token: stored.token  || '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',
+      token: stored.token  || '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',
       owner: stored.owner  || 'tomsstrub',
       repo:  stored.repo   || 'PPM_STRUB_2026',
       path:  stored.path   || 'resultats/resultats.csv',
     };
   }catch(e){
-    return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
+    return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
   }
 }
 function saveGhConfig(){
