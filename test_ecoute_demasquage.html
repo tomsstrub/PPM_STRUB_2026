@@ -584,9 +584,6 @@ function resetForNext(){
   render();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN
-// ─────────────────────────────────────────────────────────────────────────────
 function tplAdmin(){
   const cfg=loadGhConfig();
   function row(lbl){
@@ -608,41 +605,34 @@ function tplAdmin(){
       </div>
     </div>`;
   }
-  const ready=['A','B','C','D'].every(l=>decodeStatus[l]==='ok');
   return topBar()+'<button class="btn-sm" onclick="S.phase=\'welcome\';render()" style="margin-bottom:1.5rem">← Retour</button>'+`
   <h2>Accès chercheur</h2>
-
   <div class="card" style="margin-top:1rem">
     <h3 style="margin-bottom:1rem">Extraits audio</h3>
-    <p style="font-size:13px;margin-bottom:1rem">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier que ce fichier HTML. Sinon, sélectionnez-les manuellement ci-dessous.</p>
+    <p style="font-size:13px;margin-bottom:1rem">Les fichiers <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testA.mp3</code> à <code style="font-size:12px;background:#f0ece5;padding:1px 4px;border-radius:3px">testD.mp3</code> sont chargés automatiquement s'ils sont dans le même dossier. Sinon, sélectionnez-les manuellement.</p>
     ${['A','B','C','D'].map(row).join('')}
   </div>
-
   <div class="card" style="margin-top:1rem">
     <h3 style="margin-bottom:.75rem">Configuration GitHub</h3>
     <div class="note" style="margin-bottom:1rem">
-      <strong>Token requis :</strong> GitHub → Settings → Developer settings → Personal access tokens → <strong>Tokens (classic)</strong> → Generate new token → cochez <strong>repo</strong> (toute la ligne) → Generate token.
+      Le token n'a besoin que du scope <strong>public_repo</strong> — il déclenche uniquement le workflow, c'est GitHub Actions qui écrit le CSV en utilisant un secret interne. Créez-le sur GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → cochez <strong>public_repo</strong> uniquement.
     </div>
     <div style="margin-bottom:.85rem">
-      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Token d'accès personnel (classic, scope <code>repo</code> complet)</label>
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Token (scope <code>public_repo</code> suffit)</label>
       <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${cfg.token||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:monospace;background:var(--surface2);color:var(--text);outline:none">
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.85rem">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
       <div>
         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Propriétaire (username GitHub)</label>
         <input id="gh-owner" type="text" placeholder="votre-nom" value="${cfg.owner||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
       </div>
       <div>
         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Nom du dépôt</label>
-        <input id="gh-repo" type="text" placeholder="test-demasquage" value="${cfg.repo||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
+        <input id="gh-repo" type="text" placeholder="PPM_STRUB_2026" value="${cfg.repo||''}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
       </div>
     </div>
-    <div style="margin-bottom:1rem">
-      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:var(--text2)">Chemin du fichier CSV dans le dépôt</label>
-      <input id="gh-path" type="text" placeholder="resultats/resultats.csv" value="${cfg.path||'resultats/resultats.csv'}" style="width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;background:var(--surface2);color:var(--text);outline:none">
-    </div>
     <button class="btn-primary btn-full" onclick="saveGhConfig()">Enregistrer la configuration</button>
-    <button class="btn-full" style="margin-top:.5rem" onclick="testGhConfig()">Tester la connexion et créer le CSV</button>
+    <button class="btn-full" style="margin-top:.5rem" onclick="testGhConfig()">Tester la connexion</button>
     <div id="gh-status" style="margin-top:.75rem;font-size:13px;color:var(--text3);line-height:1.5"></div>
   </div>`;
 }
@@ -653,20 +643,14 @@ function tplAdmin(){
 function loadGhConfig(){
   try{
     const stored=JSON.parse(localStorage.getItem('gh_config')||'{}');
-    // If stored token matches old revoked token, clear it
-    if(stored.token==='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'){
-      localStorage.removeItem('gh_config');
-      return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
-    }
-    // Default values — used if not yet configured via admin panel
     return {
-      token: stored.token  || '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',
+      token: stored.token  || '',
       owner: stored.owner  || 'tomsstrub',
       repo:  stored.repo   || 'PPM_STRUB_2026',
       path:  stored.path   || 'resultats/resultats.csv',
     };
   }catch(e){
-    return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
+    return {token:'',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
   }
 }
 function saveGhConfig(){
@@ -674,7 +658,6 @@ function saveGhConfig(){
     token:document.getElementById('gh-token')?.value.trim()||'',
     owner:document.getElementById('gh-owner')?.value.trim()||'',
     repo: document.getElementById('gh-repo')?.value.trim()||'',
-    path: document.getElementById('gh-path')?.value.trim()||'resultats.csv',
   };
   localStorage.setItem('gh_config',JSON.stringify(cfg));
   const el=document.getElementById('gh-status');
@@ -682,48 +665,31 @@ function saveGhConfig(){
 }
 async function testGhConfig(){
   const el=document.getElementById('gh-status');
-  if(el){el.textContent='Connexion en cours…';el.style.color='var(--text3)';}
+  if(el){el.textContent='Test en cours…';el.style.color='var(--text3)';}
   const cfg=loadGhConfig();
   if(!cfg.token||!cfg.owner||!cfg.repo){
     if(el){el.textContent='⚠ Remplissez tous les champs.';el.style.color='var(--accent2)';}return;
   }
-  const path=cfg.path||'resultats.csv';
-  const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`;
-  const headers={'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
-
   try{
-    // 1. Check repo access
-    const repoCheck=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{headers});
-    if(!repoCheck.ok){
-      if(el){el.textContent='✗ Erreur '+repoCheck.status+' — vérifiez le token et le nom du dépôt.';el.style.color='var(--accent2)';}
-      return;
-    }
-
-    // 2. Check if CSV already exists
-    const fileCheck=await fetch(api,{headers});
-    if(fileCheck.ok){
-      if(el){el.textContent='✓ Connexion réussie — le fichier CSV existe déjà.';el.style.color='var(--accent)';}
-      return;
-    }
-
-    // 3. File doesn't exist — create it with just the header row
-    const headerRow=buildCSVHeaders().map(v=>'"'+v+'"').join(';');
-    const content='\uFEFF'+headerRow+'\n';
-    const encoded=btoa(unescape(encodeURIComponent(content)));
-    const put=await fetch(api,{
-      method:'PUT',headers,
-      body:JSON.stringify({message:'Initialisation du fichier de résultats',content:encoded})
+    // Test repo access
+    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{
+      headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
     });
-    if(put.ok){
-      if(el){el.textContent='✓ Connexion réussie — fichier CSV créé avec les en-têtes.';el.style.color='var(--accent)';}
-    } else {
-      const err=await put.json().catch(()=>({}));
-      let msg='✗ Impossible de créer le fichier CSV ('+put.status+').';
-      if(put.status===403||put.status===422){
-        msg+=' → Vérifiez que votre token est bien de type "classic" avec le scope "repo" entièrement coché (et non "Fine-grained").';
-      }
-      if(el){el.textContent=msg;el.style.color='var(--accent2)';}
+    if(!r.ok){
+      if(el){el.textContent='✗ Erreur '+r.status+' — vérifiez le token et le nom du dépôt.';el.style.color='var(--accent2)';}
+      return;
     }
+    // Test workflow exists
+    const w=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows`,{
+      headers:{'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json'}
+    });
+    const wj=await w.json();
+    const hasWorkflow=wj.workflows?.some(wf=>wf.path==='.github/workflows/save-result.yml');
+    if(!hasWorkflow){
+      if(el){el.textContent='⚠ Connexion OK mais le fichier .github/workflows/save-result.yml est introuvable dans le dépôt. Ajoutez-le d\'abord.';el.style.color='var(--accent2)';}
+      return;
+    }
+    if(el){el.textContent='✓ Connexion réussie — workflow détecté, tout est prêt.';el.style.color='var(--accent)';}
   }catch(e){
     if(el){el.textContent='✗ Erreur réseau : '+e.message;el.style.color='var(--accent2)';}
   }
@@ -755,41 +721,27 @@ function buildCSVRow(d){
 async function saveToGitHub(entry){
   const cfg=loadGhConfig();
   if(!cfg.token||!cfg.owner||!cfg.repo) return false;
-  const path=cfg.path||'resultats.csv';
-  const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`;
-  const headers={'Authorization':'Bearer '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
 
-  // 1. Try to get existing file (to retrieve SHA + current content)
-  let existingSha=null, existingContent='';
-  try{
-    const get=await fetch(api,{headers});
-    if(get.ok){
-      const j=await get.json();
-      existingSha=j.sha;
-      existingContent=atob(j.content.replace(/\n/g,''));
+  const row=buildCSVRow(entry);
+  const headers=buildCSVHeaders().map(v=>'"'+v+'"').join(';');
+
+  const res=await fetch(
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/dispatches`,
+    {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+cfg.token,
+        'Accept':'application/vnd.github+json',
+        'Content-Type':'application/json',
+      },
+      body:JSON.stringify({
+        event_type:'save_result',
+        client_payload:{row, headers},
+      }),
     }
-  }catch(e){}
-
-  // 2. Build new content
-  const headers_row = buildCSVHeaders().map(v=>'"'+v+'"').join(';');
-  const new_row = buildCSVRow(entry);
-  let newContent;
-  if(existingContent){
-    // Append row (skip header if file already exists)
-    newContent=existingContent.trimEnd()+'\n'+new_row+'\n';
-  } else {
-    // New file — add header + row
-    newContent='\uFEFF'+headers_row+'\n'+new_row+'\n';
-  }
-
-  // 3. PUT updated file
-  const body={
-    message:`Résultats participant ${entry.pid}`,
-    content:btoa(unescape(encodeURIComponent(newContent))),
-    ...(existingSha?{sha:existingSha}:{})
-  };
-  const put=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});
-  return put.ok;
+  );
+  // 204 = accepted, no content
+  return res.status===204;
 }
 
 async function saveResults(){
@@ -800,13 +752,11 @@ async function saveResults(){
     order:S.order,
     ratings:S.ratings
   };
-  // Always save locally as backup
   try{
     const k='demasquage_results',ex=JSON.parse(localStorage.getItem(k)||'[]');
     ex.push(entry);localStorage.setItem(k,JSON.stringify(ex));
   }catch(e){}
 
-  // Try GitHub
   const cfg=loadGhConfig();
   if(cfg.token&&cfg.owner&&cfg.repo){
     try{
