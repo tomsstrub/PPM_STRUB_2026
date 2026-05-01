@@ -651,7 +651,18 @@ function tplAdmin(){
 // GITHUB CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 function loadGhConfig(){
-  try{return JSON.parse(localStorage.getItem('gh_config')||'{}');}catch(e){return{};}
+  try{
+    const stored=JSON.parse(localStorage.getItem('gh_config')||'{}');
+    // Default values — used if not yet configured via admin panel
+    return {
+      token: stored.token  || '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',
+      owner: stored.owner  || 'tomsstrub',
+      repo:  stored.repo   || 'PPM_STRUB_2026',
+      path:  stored.path   || 'resultats/resultats.csv',
+    };
+  }catch(e){
+    return {token:'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',owner:'tomsstrub',repo:'PPM_STRUB_2026',path:'resultats/resultats.csv'};
+  }
 }
 function saveGhConfig(){
   const cfg={
