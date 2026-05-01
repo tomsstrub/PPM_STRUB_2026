@@ -155,8 +155,14 @@ function playFrom(lbl, offsetSec, onended){
   src.buffer = buf;
   src.connect(ctx.destination);
   src.onended = ()=>{
-    // only fire if this is still the active node (not stopped manually)
-    if(activeNode===src){ isPlaying=false; activeNode=null; if(onended)onended(); }
+    if(activeNode===src){
+      isPlaying=false;
+      activeNode=null;
+      activePosOffset=0;
+      activeStartedAt=0;
+      syncPos=0;
+      if(onended)onended();
+    }
   };
   const safeOffset = Math.max(0, Math.min(offsetSec, buf.duration - 0.01));
   src.start(0, safeOffset);
@@ -332,7 +338,7 @@ function tplWelcome(){
   <p>Salut c'est Thomas 3staetic Billy Burton !!!!!!! Ce test fait partie d'une recherche sur la perception des techniques de mixage musical dans le cadre de mon mémoire de fin d'études de Master !! Il s'agit d'étudier comment différents traitements sonores influencent la perception de la voix en musique actuelle.</p>
   <p>Vous allez écouter 6 paires d'extraits musicaux et évaluer pour chaque paire 5 caractéristiques perceptives sur une échelle de 8 crans (pour départager les deux extraits de la paire citée plus haut).</p>
   <p>Vous allez comprendre à la prochaine étape vous inquiétez pas c'est tout simple !!! Vous pouvez lancer le tutoriel juste en dessous !! Je vous demande avant ça de répondre à quelques questions personnelles qui resteront anonymes pour mieux comprendre votre profil !</p>
-  <div class="note" style="margin-top:.25rem"><strong>Durée estimée :</strong> 20 à 30 minutes. Utilisez le casque ou le système d'écoute avec lequel vous écoutez habituellement de la musique.</div>
+  <div class="note" style="margin-top:.25rem"><strong>Durée estimée :</strong> 15 à 20 minutes. Utilisez le casque ou le système d'écoute avec lequel vous écoutez habituellement de la musique.</div>
   <div style="margin-top:1.5rem">
     <button class="btn-primary btn-full" onclick="startParticipant()" ${filesReady?'':'disabled'}>
       ${filesReady?'Lancer le tutoriel !!!!':'En attente du chargement des extraits…'}
@@ -556,6 +562,7 @@ function nextTest(){
   if(S.testIdx<5){S.testIdx++;}
   else{S.phase='done';saveResults();}
   render();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
