@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyse — Démasquage vocal</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;--white:#fff;--text:#181715;--text2:#706b63;--text3:#b0a99e;
+  --border:#e4dfd8;--border2:#ccc6be;
+  --A:#64748b;--B:#2563eb;--C:#059669;--D:#d97706;
+  --sig3:#065f46;--sig3-bg:#d1fae5;--sig2:#1e40af;--sig2-bg:#dbeafe;
+  --sig1:#92400e;--sig1-bg:#fef3c7;--ns:#6b7280;--ns-bg:#f3f4f6;
+  --r:6px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6}
+#app{max-width:1020px;margin:0 auto;padding:2.5rem 1.5rem 6rem}
+.hdr{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+.hdr-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.3rem}
+.hdr h1{font-family:'Instrument Serif',serif;font-size:clamp(24px,3.5vw,38px);font-weight:400;line-height:1.15}
+.hdr-row{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-top:.75rem;font-size:12px;color:var(--text2)}
+.hdr-row strong{color:var(--text);font-weight:500}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:2rem;overflow-x:auto}
+.tab{font-size:13px;font-weight:500;padding:9px 16px;border:none;background:none;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text)}.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.row,.row-3,.row-4{grid-template-columns:1fr}}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:0}
+.card-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:1rem}
+.section-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:1rem}
+.tc{border-radius:var(--r);padding:1.1rem;border:1px solid var(--border)}
+.tc-head{display:flex;align-items:center;gap:7px;margin-bottom:.5rem}
+.tc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tc-label{font-size:12px;font-weight:600}
+.tc-score{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:500;line-height:1}
+.tc-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.tc-name{font-size:11px;color:var(--text2);margin-top:.5rem}
+.hbar{margin-bottom:.5rem}
+.hbar-top{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px}
+.hbar-val{font-family:'IBM Plex Mono',monospace;font-size:10px}
+.hbar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:3px}
+.bpbar{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.bpbar-label{font-size:11px;color:var(--text3);width:100px;flex-shrink:0;text-align:right}
+.bpbar-track{flex:1;height:14px;background:var(--bg);border-radius:2px;overflow:hidden;position:relative}
+.bpbar-mid{position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--border2)}
+.bpbar-fill{position:absolute;top:0;height:100%}
+.bpbar-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);width:32px}
+.note{border-left:2px solid var(--border2);padding:.6rem 1rem;font-size:12px;color:var(--text2);margin-bottom:1.25rem;background:var(--white);border-radius:0 4px 4px 0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.mono{font-family:'IBM Plex Mono',monospace}
+.stat-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:1.25rem}
+.stat-m{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:.9rem 1.1rem;min-width:110px;flex:1}
+.stat-m-val{font-size:22px;font-weight:600;line-height:1}
+.stat-m-label{font-size:11px;color:var(--text3);margin-top:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:7px;height:7px;border-radius:50%}
+/* p-value badges */
+.pv{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:1px 5px;border-radius:2px;letter-spacing:.02em}
+.pv-s3{background:var(--sig3-bg);color:var(--sig3)}
+.pv-s2{background:var(--sig2-bg);color:var(--sig2)}
+.pv-s1{background:var(--sig1-bg);color:var(--sig1)}
+.pv-ns{background:var(--ns-bg);color:var(--ns)}
+/* legend p-values */
+.sig-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem;font-size:11px;color:var(--text2)}
+.sig-legend span{display:flex;align-items:center;gap:4px}
+/* cross */
+.cross-group{margin-bottom:1.5rem}
+.cross-title{font-size:13px;font-weight:600;margin-bottom:.75rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.cross-row{display:flex;align-items:center;gap:8px;margin-bottom:.5rem}
+.cross-label{width:150px;flex-shrink:0;font-size:12px;color:var(--text2)}
+.cross-bars{flex:1;display:flex;flex-direction:column;gap:2px}
+.mini-tech-bar{display:flex;gap:2px;height:16px;width:100%}
+.mtb{height:100%;border-radius:2px;min-width:2px;display:flex;align-items:center}
+.mtb span{font-size:9px;color:white;padding:0 3px;overflow:hidden;white-space:nowrap}
+.crit-btn{font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 13px;border:1px solid var(--border2);border-radius:4px;background:var(--white);color:var(--text2);cursor:pointer;transition:all .15s}
+.crit-btn:hover{background:var(--bg);color:var(--text)}
+.crit-btn.on{background:var(--text);color:var(--white);border-color:var(--text)}
+.group-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:12px}
+.group-title{font-size:13px;font-weight:600;margin-bottom:.25rem}
+.group-sub{font-size:11px;color:var(--text3);margin-bottom:1rem}
+.welch-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.welch-row:last-child{border-bottom:none}
+.welch-tech{width:20px;height:20px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0}
+.delta-pos{color:#059669;font-weight:600}
+.delta-neg{color:#dc2626;font-weight:600}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-eyebrow">Mémoire de Master · Analyse perceptive</div>
+    <h1>Démasquage de la voix<br><em>dans le mixage musical</em></h1>
+    <div class="hdr-row" id="hdr-stats"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab on"  onclick="go('overview')">Vue d'ensemble</button>
+    <button class="tab"     onclick="go('pairwise')">Comparaisons 2 à 2</button>
+    <button class="tab"     onclick="go('pairs')">Par paire</button>
+    <button class="tab"     onclick="go('criteria')">Par critère</button>
+    <button class="tab"     onclick="go('hypo')">Hypothèses directes</button>
+    <button class="tab"     onclick="go('tendance')">Tendances vs Aléatoire</button>
+    <button class="tab"     onclick="go('corr')">Corrélations</button>
+    <button class="tab"     onclick="go('corrpairs')">Corrélations par paire</button>
+    <button class="tab"     onclick="go('cronbach')">Alpha de Cronbach</button>
+    <button class="tab"     onclick="go('cross')">Analyse croisée</button>
+    <button class="tab"     onclick="go('participants')">Participants</button>
+  </div>
+  <div id="content"></div>
+</div>
+<script>
+// ── RAW DATA ─────────────────────────────────────────────────────────────────
+const RAW=`participant_id;horodatage;age;freq;pop;device;pro;audiophile;AB_premier;AB_preference;AB_niveau;AB_intelligibilite;AB_expressivite;AB_equilibre;AC_premier;AC_preference;AC_niveau;AC_intelligibilite;AC_expressivite;AC_equilibre;AD_premier;AD_preference;AD_niveau;AD_intelligibilite;AD_expressivite;AD_equilibre;BC_premier;BC_preference;BC_niveau;BC_intelligibilite;BC_expressivite;BC_equilibre;BD_premier;BD_preference;BD_niveau;BD_intelligibilite;BD_expressivite;BD_equilibre;CD_premier;CD_preference;CD_niveau;CD_intelligibilite;CD_expressivite;CD_equilibre
+P_1779041421011;2026-05-17;29;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Oui;A;3;8;6;5;3;C;6;3;3;4;6;D;4;4;4;4;4;B;4;3;4;4;5;B;6;2;2;5;5;D;4;6;5;4;3
+P_1779042320372;2026-05-17;25;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Oui;B;7;2;4;5;7;C;3;3;3;4;5;A;4;6;5;4;5;B;7;3;4;4;6;B;3;3;4;2;5;D;5;5;5;6;5
+P_1779042589410;2026-05-17;28;Plusieurs heures par jour;Oui;Enceintes;Oui;Oui;B;3;3;3;3;3;A;3;6;5;3;4;A;3;4;3;4;4;B;5;3;5;5;5;B;3;3;5;3;5;D;4;4;4;4;4
+P_1779042612350;2026-05-17;30;Un peu tous les jours;Un peu;Casque ou écouteurs;Non;Non;B;5;4;4;4;5;C;5;4;4;4;5;D;4;4;4;4;4;B;4;4;4;4;4;B;5;4;4;4;5;C;4;4;4;4;4
+P_1779042665233;2026-05-17;25;Un peu tous les jours;Non;Casque ou écouteurs;Oui;Oui;A;2;7;5;3;2;A;5;6;5;4;4;D;3;2;4;3;3;C;6;4;4;5;5;B;3;3;3;4;5;C;3;6;3;3;4
+P_1779043057558;2026-05-17;22;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;B;5;4;5;5;5;A;4;5;5;4;4;D;4;5;4;5;4;B;4;5;4;4;4;D;4;5;5;4;5;D;5;4;4;4;4
+P_1779044025923;2026-05-17;25;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Oui;A;6;6;5;6;4;A;5;5;5;4;4;A;4;5;4;4;5;C;5;6;5;4;4;D;5;6;5;5;4;D;5;6;6;5;4
+P_1779045857404;2026-05-17;26;Un peu tous les jours;Oui;Enceintes;Oui;Oui;A;7;7;8;5;8;C;4;3;4;3;3;D;2;5;5;3;4;C;6;5;6;5;5;D;7;8;8;6;8;D;3;5;5;3;5
+P_1779046297009;2026-05-17;23;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;B;6;3;4;3;6;A;4;6;5;4;4;D;3;5;5;5;4;C;3;7;5;6;3;D;4;5;6;7;4;C;5;4;4;5;6
+P_1779047245251;2026-05-17;22;Un peu tous les jours;Oui;Enceintes;Oui;Oui;A;6;6;5;7;5;A;3;5;3;2;4;D;2;4;3;3;2;C;6;6;6;6;5;D;2;6;3;2;2;C;3;4;3;3;4
+P_1779049896138;2026-05-17;26;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;B;2;4;5;3;3;C;6;2;4;6;5;D;6;5;5;6;6;C;5;4;5;5;5;B;2;1;2;5;2;D;3;6;5;3;4
+P_1779050420485;2026-05-17;30;Plusieurs heures par jour;Oui;Enceintes;Oui;Oui;A;1;1;1;1;1;C;8;8;8;8;8;D;1;1;1;1;1;B;8;8;8;8;8;D;8;8;8;8;8;C;8;8;8;8;8
+P_1779052486347;2026-05-17;23;Un peu tous les jours;Oui;Enceintes;Oui;Un peu;A;2;7;6;3;2;C;5;5;5;6;4;A;4;6;6;5;3;C;2;7;5;3;3;B;5;3;5;5;7;C;6;1;4;5;6
+P_1779053858130;2026-05-17;21;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Oui;B;6;1;3;6;5;A;6;6;4;6;6;D;6;3;7;7;3;B;6;3;3;6;7;D;5;6;6;3;6;D;3;7;6;2;6
+P_1779095237251;2026-05-18;25;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Oui;A;5;5;5;5;5;A;4;5;4;4;4;D;5;5;5;5;5;C;4;4;4;3;4;B;6;3;4;4;6;C;4;4;4;4;4
+P_1779102553818;2026-05-18;22;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;A;3;6;5;4;4;C;5;3;3;4;5;D;5;3;4;4;5;B;4;4;5;4;5;B;6;3;5;5;5;C;5;3;5;5;6
+P_1779168871875;2026-05-19;23;Un peu tous les jours;Un peu;Casque ou écouteurs;Oui;Un peu;B;3;2;4;4;4;C;5;6;4;4;4;D;4;3;4;5;5;B;4;4;5;5;5;D;4;6;5;3;3;D;5;5;5;4;4
+P_1779194096144;2026-05-19;23;Un peu tous les jours;Oui;Enceintes;Oui;Oui;A;5;8;8;6;5;C;1;2;3;1;1;D;8;8;7;8;8;B;1;3;1;1;1;D;6;8;8;6;5;C;1;1;1;1;1
+P_1779201743111;2026-05-19;23;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;A;3;3;4;3;5;C;6;3;2;3;5;D;3;3;3;4;3;B;6;6;6;5;5;D;5;5;4;5;5;C;5;4;4;4;4
+P_1779226041364;2026-05-19;25;Plusieurs heures par jour;Un peu;Casque ou écouteurs;Non;Oui;B;6;3;3;4;7;A;7;7;7;7;7;D;4;4;4;4;4;B;5;4;4;5;5;D;2;8;5;5;3;D;3;7;7;5;4
+P_1779227087631;2026-05-19;29;Un peu tous les jours;Oui;Casque ou écouteurs;Non;Un peu;B;5;4;2;6;4;A;5;5;5;5;5;A;5;5;5;5;5;B;4;5;5;4;4;D;4;6;5;3;4;D;3;3;4;3;3
+P_1779359786525;2026-05-21;30;Un peu chaque semaine;Oui;Casque ou écouteurs;Non;Non;A;6;7;7;7;6;C;2;2;2;2;2;A;6;6;6;3;5;B;3;3;3;3;3;B;3;3;3;3;3;D;2;2;3;5;5
+P_1779360530816;2026-05-21;29;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Oui;B;4;4;4;4;4;C;4;4;4;4;4;A;5;4;4;4;5;C;5;5;5;5;5;D;5;5;5;5;5;D;5;5;5;5;5
+P_1779368073198;2026-05-21;22;Plusieurs heures par jour;Oui;Enceintes;Oui;Un peu;A;3;7;5;3;2;C;5;4;5;3;4;D;4;5;4;4;5;C;5;6;5;6;5;B;4;3;3;3;4;C;5;5;5;6;4
+P_1779374728439;2026-05-21;30;Un peu tous les jours;Oui;Casque ou écouteurs;Non;Non;A;5;5;5;5;5;C;4;4;4;4;4;A;5;5;5;5;5;B;4;4;4;4;4;D;5;5;5;5;5;C;4;4;4;4;4
+P_1779376949244;2026-05-21;29;Plusieurs heures par jour;Oui;Casque ou écouteurs;Non;Un peu;B;5;4;3;7;5;A;4;3;3;2;4;A;7;2;7;8;5;B;6;3;4;5;5;D;5;5;3;6;5;D;3;6;2;4;3
+P_1779384317530;2026-05-21;25;Un peu tous les jours;Oui;Casque ou écouteurs;Non;Oui;B;5;2;3;4;7;A;3;6;5;5;2;A;3;5;5;3;2;C;6;7;5;5;6;D;2;7;6;4;2;D;2;6;4;4;2
+P_1779713840317;2026-05-25;27;Plusieurs heures par jour;Oui;Casque ou écouteurs;Non;Non;A;6;6;6;6;6;A;6;6;5;5;4;D;3;6;6;6;5;C;3;6;4;4;4;D;4;5;4;5;4;C;3;3;4;3;3
+P_1779799800762;2026-05-26;31;Un peu tous les jours;Oui;Casque ou écouteurs;Oui;Un peu;B;4;1;2;4;3;C;4;5;4;5;4;A;5;4;5;4;5;B;4;5;4;5;4;D;7;8;5;6;6;D;5;5;5;5;5
+P_1779820492835;2026-05-26;27;Plusieurs heures par jour;Oui;Casque ou écouteurs;Oui;Un peu;B;8;1;6;1;6;C;1;3;3;6;6;D;4;5;5;4;4;C;4;4;4;4;4;D;8;8;8;8;7;C;2;3;6;3;5`;
+
+const CRIT=['preference','niveau','intelligibilite','expressivite','equilibre'];
+const CRIT_L={preference:'Préférence',niveau:'Niveau voix',intelligibilite:'Intelligibilité',expressivite:'Expressivité',equilibre:'Équilibre'};
+const PAIRS=['AB','AC','AD','BC','BD','CD'];
+const TECHS=['A','B','C','D'];
+const T_LABEL={A:'Sans changement',B:'Niveau voix ↑',C:'Sidechain pleine bande',D:'Sidechain multibande'};
+const T_COL={A:'#64748b',B:'#2563eb',C:'#059669',D:'#d97706'};
+
+// ── PARSE ────────────────────────────────────────────────────────────────────
+function parse(raw){
+  const lines=raw.trim().split('\n');
+  const hdr=lines[0].split(';').map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(1).map(l=>{
+    const v=l.split(';').map(x=>x.replace(/^"|"$/g,'').trim());
+    const o={};hdr.forEach((h,i)=>o[h]=v[i]||'');return o;
+  }).filter(r=>r.participant_id);
+}
+function normScore(s,premier,pair){
+  const v=parseFloat(s);if(isNaN(v)||v<1||v>8)return null;
+  return premier===pair[0]?v-4.5:4.5-v;
+}
+function validPair(row,pair){const p=row[`${pair}_premier`];return p===pair[0]||p===pair[1];}
+
+const DATA=parse(RAW);
+const N=DATA.length;
+
+// ── STATISTICS ───────────────────────────────────────────────────────────────
+// Lanczos lgamma
+function lgamma(x){
+  const C=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5)return Math.log(Math.PI/Math.sin(Math.PI*x))-lgamma(1-x);
+  let z=x-1,a=C[0],t=z+7.5;
+  for(let i=1;i<9;i++)a+=C[i]/(z+i);
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(a);
+}
+// Regularised incomplete beta via Lentz CF
+function betaCF(x,a,b){
+  const EPS=3e-7,FPMIN=1e-30,MAXIT=200;
+  const qab=a+b,qap=a+1,qam=a-1;
+  let c=1,d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN)d=FPMIN;d=1/d;let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;
+    c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;
+    d=1/d;const del=d*c;h*=del;
+    if(Math.abs(del-1)<EPS)break;
+  }
+  return h;
+}
+function betaInc(x,a,b){
+  if(x<=0)return 0;if(x>=1)return 1;
+  if(x>(a+1)/(a+b+2))return 1-betaInc(1-x,b,a);
+  const lbet=lgamma(a)+lgamma(b)-lgamma(a+b);
+  return Math.exp(Math.log(x)*a+Math.log(1-x)*b-lbet)/a*betaCF(x,a,b);
+}
+function tPValue(t,df){
+  // Two-tailed p-value: P(|T_df| > t) = I_x(df/2, 1/2) with x = df/(df+t²)
+  return betaInc(df/(df+t*t),df/2,0.5);
+}
+
+// One-sample t-test (H0: mean=0)
+function tTest1(vals){
+  const n=vals.length;if(n<2)return null;
+  const mean=vals.reduce((a,b)=>a+b,0)/n;
+  const v=vals.reduce((s,x)=>s+(x-mean)**2,0)/(n-1);
+  const se=Math.sqrt(v/n);if(se<1e-10)return{t:Infinity,p:mean?0:1,n,mean,se,df:n-1};
+  const t=mean/se,df=n-1;
+  return{t,p:tPValue(Math.abs(t),df),n,mean,se,df};
+}
+// Welch two-sample t-test (H0: means equal)
+function welch(a,b){
+  const na=a.length,nb=b.length;if(na<2||nb<2)return null;
+  const ma=a.reduce((s,v)=>s+v,0)/na,mb=b.reduce((s,v)=>s+v,0)/nb;
+  const va=a.reduce((s,v)=>s+(v-ma)**2,0)/(na-1);
+  const vb=b.reduce((s,v)=>s+(v-mb)**2,0)/(nb-1);
+  const se=Math.sqrt(va/na+vb/nb);if(se<1e-10)return null;
+  const t=(ma-mb)/se;
+  const df=(va/na+vb/nb)**2/((va/na)**2/(na-1)+(vb/nb)**2/(nb-1));
+  return{t,p:tPValue(Math.abs(t),df),df,ma,mb,na,nb};
+}
+function pvBadge(p){
+  if(p===null||p===undefined)return '';
+  if(p<0.001)return`<span class="pv pv-s3">p&lt;.001 ***</span>`;
+  if(p<0.01) return`<span class="pv pv-s2">p=${p.toFixed(3)} **</span>`;
+  if(p<0.05) return`<span class="pv pv-s1">p=${p.toFixed(3)} *</span>`;
+  if(p<0.1)  return`<span class="pv pv-ns">p=${p.toFixed(3)} †</span>`;
+  return`<span class="pv pv-ns">p=${p.toFixed(2)} ns</span>`;
+}
+function pvSymbol(p){
+  if(p===null)return'';
+  if(p<0.001)return'***';if(p<0.01)return'**';if(p<0.05)return'*';if(p<0.1)return'†';return'ns';
+}
+
+// ── DATA COMPUTATIONS ────────────────────────────────────────────────────────
+function getNormVals(crit,rows){
+  const acc={A:[],B:[],C:[],D:[]};
+  rows.forEach(row=>{
+    PAIRS.forEach(pair=>{
+      if(!validPair(row,pair))return;
+      const [x,y]=pair.split('');
+      const n=normScore(row[`${pair}_${crit}`],row[`${pair}_premier`],pair);
+      if(n===null)return;
+      acc[y].push(n);acc[x].push(-n);
+    });
+  });
+  return acc;
+}
+function techScores(crit,rows){
+  const acc=getNormVals(crit,rows);
+  const r={};TECHS.forEach(t=>{const v=acc[t];r[t]=v.length?v.reduce((a,b)=>a+b,0)/v.length:null;});
+  return r;
+}
+function techTests(crit,rows){
+  const acc=getNormVals(crit,rows);
+  const r={};TECHS.forEach(t=>{r[t]=tTest1(acc[t]);});
+  return r;
+}
+function pairVals(pair,crit,rows){
+  return rows.filter(r=>validPair(r,pair))
+    .map(r=>normScore(r[`${pair}_${crit}`],r[`${pair}_premier`],pair))
+    .filter(v=>v!==null);
+}
+function rank(sc){return TECHS.filter(t=>sc[t]!==null).sort((a,b)=>sc[b]-sc[a]);}
+
+const SC={},TT={};
+CRIT.forEach(c=>{SC[c]=techScores(c,DATA);TT[c]=techTests(c,DATA);});
+
+// ── CHART STATE ──────────────────────────────────────────────────────────────
+let charts={};
+function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};}
+function mkChart(id,cfg){const el=document.getElementById(id);if(!el)return;const c=new Chart(el,cfg);charts[id]=c;}
+Chart.defaults.font.family="'Instrument Sans',sans-serif";
+Chart.defaults.color='#706b63';
+Chart.defaults.borderColor='#e4dfd8';
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function sigLegend(){
+  return`<div class="sig-legend">
+    <span>Seuils de significativité :</span>
+    <span><span class="pv pv-s3">*** p&lt;.001</span></span>
+    <span><span class="pv pv-s2">** p&lt;.01</span></span>
+    <span><span class="pv pv-s1">* p&lt;.05</span></span>
+    <span><span class="pv pv-ns">† p&lt;.10</span></span>
+    <span><span class="pv pv-ns">ns p≥.10</span></span>
+    <span style="color:var(--text3)">· Test t unilatéral H₀ : score = 0</span>
+  </div>`;
+}
+function hbar(label,val,color){
+  const pct=Math.max(0,Math.min(100,((val+3.5)/7)*100));
+  return`<div class="hbar">
+    <div class="hbar-top"><span>${label}</span><span class="hbar-val">${val>=0?'+':''}${val.toFixed(2)}</span></div>
+    <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+function bpBar(crit,mean,pair){
+  const [x,y]=pair.split('');
+  const pX=Math.max(0,Math.min(50,(-mean/3.5)*50));
+  const pY=Math.max(0,Math.min(50,(mean/3.5)*50));
+  const w=mean>0.2?y:mean<-0.2?x:'=';
+  return`<div class="bpbar">
+    <span class="bpbar-label">${CRIT_L[crit]}</span>
+    <div class="bpbar-track">
+      <div class="bpbar-mid"></div>
+      <div class="bpbar-fill" style="right:50%;width:${pX}%;background:${T_COL[x]}"></div>
+      <div class="bpbar-fill" style="left:50%;width:${pY}%;background:${T_COL[y]}"></div>
+    </div>
+    <span class="bpbar-val" style="color:${w==='='?'var(--text3)':T_COL[w]}">${w==='='?'≈':'>'+w}</span>
+  </div>`;
+}
+function techCard(t,sc,tt){
+  const s=sc[t];const r=rank(sc);const rk=r.indexOf(t)+1;
+  const test=tt?tt[t]:null;
+  return`<div class="tc" style="border-color:${rk===1?T_COL[t]:'var(--border)'}">
+    <div class="tc-head"><span class="tc-dot" style="background:${T_COL[t]}"></span><span class="tc-label">Extrait ${t}</span></div>
+    <div class="tc-score" style="color:${T_COL[t]}">${s>=0?'+':''}${s.toFixed(2)}</div>
+    <div class="tc-sub">${['①','②','③','④'][rk-1]} ${['Meilleur','2ème','3ème','4ème'][rk-1]}</div>
+    ${test?`<div style="margin-top:.4rem">${pvBadge(test.p)}</div>`:''}
+    <div class="tc-name">${T_LABEL[t]}</div>
+  </div>`;
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+let tab='overview';
+let crossCrit='preference';
+function setCrossCrit(c){crossCrit=c;destroyCharts();document.getElementById('content').innerHTML=tCross();setTimeout(initCharts,30);}
+function go(t){
+  tab=t;
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('on',['overview','pairwise','pairs','criteria','hypo','tendance','corr','corrpairs','cronbach','cross','participants'][i]===t);
+  });
+  destroyCharts();render();
+}
+function render(){
+  document.getElementById('content').innerHTML={
+    overview:tOverview,pairwise:tPairwise,pairs:tPairs,criteria:tCriteria,
+    hypo:tHypo,tendance:tTendance,corr:tCorr,corrpairs:tCorrPairs,
+    cronbach:tCronbach,cross:tCross,participants:tParticipants
+  }[tab]();
+  setTimeout(initCharts,30);
+}
+
+// Score agrégé par participant pour une technique et un critère
+// (moyenne sur toutes les paires où la technique apparaît)
+function perParticipantScore(row,crit,tech){
+  const vals=[];
+  PAIRS.forEach(pair=>{
+    if(!validPair(row,pair))return;
+    const[x,y]=pair.split('');
+    if(x!==tech&&y!==tech)return;
+    const n=normScore(row[`${pair}_${crit}`],row[`${pair}_premier`],pair);
+    if(n===null)return;
+    vals.push(tech===y?n:-n); // positif = préfère tech
+  });
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+}
+
+// Test t apparié : score_techA vs score_techB sur tous les participants
+function pairedTest(critere,techA,techB){
+  const diffs=DATA.map(row=>{
+    const sA=perParticipantScore(row,critere,techA);
+    const sB=perParticipantScore(row,critere,techB);
+    return(sA!==null&&sB!==null)?sA-sB:null;
+  }).filter(v=>v!==null);
+  const t=tTest1(diffs);
+  const d=cohenD(diffs);
+  if(!t)return null;
+  return{...t,d,diffs,dir:t.mean>0?techA:t.mean<0?techB:'='};
+}
+
+let pwCrit='preference';
+function setPwCrit(c){pwCrit=c;document.getElementById('content').innerHTML=tPairwise();setTimeout(initCharts,30);}
+
+function tPairwise(){
+  // All 6 pairs of techniques
+  const techPairs=[['A','B'],['A','C'],['A','D'],['B','C'],['B','D'],['C','D']];
+
+  // Precompute all tests for current criterion
+  const tests=techPairs.map(([a,b])=>{
+    const t=pairedTest(pwCrit,a,b);
+    return{a,b,test:t};
+  });
+
+  // Precompute all tests for all criteria (for the full table)
+  const allTests=[];
+  CRIT.forEach(c=>{
+    techPairs.forEach(([a,b])=>{
+      const t=pairedTest(c,a,b);
+      allTests.push({crit:c,a,b,test:t});
+    });
+  });
+
+  // Matrix for selected criterion
+  function matrixCell(a,b){
+    const found=tests.find(t=>(t.a===a&&t.b===b)||(t.a===b&&t.b===a));
+    if(!found||!found.test)return`<td style="background:var(--bg)"></td>`;
+    const t=found.test;
+    // Adjust direction if a/b are swapped
+    const isSwapped=(found.a===b);
+    const mean=isSwapped?-t.mean:t.mean;
+    const dir=mean>0?a:mean<0?b:'=';
+    const col=dir==='='?'#9ca3af':T_COL[dir];
+    const op=Math.max(0.1,Math.min(0.85,Math.abs(t.d||0)/1.2));
+    const bw=t.p<0.001?3:t.p<0.01?2.5:t.p<0.05?2:t.p<0.1?1.5:1;
+    const bs=t.p<0.1?'solid':'dashed';
+    return`<td style="padding:5px;text-align:center">
+      <div style="background:${col};opacity:${op};border-radius:6px;padding:8px 4px;border:${bw}px ${bs} ${col}">
+        <div style="font-size:11px;font-weight:700;color:${op>0.45?'white':col};opacity:1">
+          ${dir==='='?'≈':`${dir} > ${dir===a?b:a}`}
+        </div>
+        <div style="font-size:10px;color:${op>0.45?'white':col};opacity:1;font-family:'IBM Plex Mono',monospace">
+          ${pvSymbol(t.p)}
+        </div>
+        <div style="font-size:9px;color:${op>0.45?'rgba(255,255,255,.7)':'var(--text3)'};opacity:1">
+          d=${Math.abs(t.d).toFixed(2)}
+        </div>
+      </div>
+    </td>`;
+  }
+
+  const sigCount=allTests.filter(t=>t.test&&t.test.p<0.05).length;
+
+  return`
+  <div class="note">
+    Pour chaque paire de techniques, <strong>test t apparié</strong> sur les scores agrégés par participant (moyennés sur les 3 paires où chaque technique apparaît).
+    H₀ : la moyenne des différences de scores entre les deux techniques est nulle.
+    Différent de l'onglet "Hypothèses directes" qui utilise les paires directes uniquement.
+  </div>
+  ${sigLegend()}
+
+  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+    <span class="section-title" style="margin-bottom:0">Critère affiché :</span>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${CRIT.map(c=>`<button class="crit-btn ${pwCrit===c?'on':''}" onclick="setPwCrit('${c}')">${CRIT_L[c]}</button>`).join('')}
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Matrice de comparaison — ${CRIT_L[pwCrit]}</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">Intensité = Cohen's d · Bordure = significativité · Lecture : ligne supérieure à colonne</p>
+      <table style="width:100%;border-collapse:separate;border-spacing:4px">
+        <thead><tr>
+          <th></th>
+          ${TECHS.map(t=>`<th style="text-align:center"><span style="color:${T_COL[t]};font-weight:700">${t}</span><div style="font-size:9px;color:var(--text3);font-weight:400">${T_LABEL[t].split(' ')[0]}</div></th>`).join('')}
+        </tr></thead>
+        <tbody>${TECHS.map((rowT,ri)=>`<tr>
+          <th style="text-align:right;padding-right:6px"><span style="color:${T_COL[rowT]};font-weight:700">${rowT}</span></th>
+          ${TECHS.map((colT,ci)=>{
+            if(ri===ci)return`<td style="background:var(--border);border-radius:6px;opacity:.3"></td>`;
+            if(ci<ri)return`<td style="background:var(--bg)"></td>`; // lower triangle empty
+            return matrixCell(rowT,colT);
+          }).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Scores moyens — ${CRIT_L[pwCrit]}</div>
+      <div class="legend">${TECHS.map(t=>`<span class="leg"><span class="leg-dot" style="background:${T_COL[t]}"></span>${t} — ${T_LABEL[t]}</span>`).join('')}</div>
+      <div style="position:relative;height:200px"><canvas id="pw-bars"></canvas></div>
+      <hr class="divider">
+      <div class="card-title">Résumé des 6 comparaisons</div>
+      ${tests.map(({a,b,test})=>{
+        if(!test)return'';
+        const ef=effectLabel(test.d);
+        return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="font-weight:700;width:32px"><span style="color:${T_COL[a]}">${a}</span><span style="color:var(--text3)">vs</span><span style="color:${T_COL[b]}">${b}</span></span>
+          <span style="flex:1;color:${test.dir==='='?'var(--text3)':T_COL[test.dir]};font-weight:600">${test.dir==='='?'≈ égalité':`${test.dir} supérieur`}</span>
+          <span class="mono" style="font-size:11px">${test.mean>=0?'+':''}${test.mean.toFixed(2)}</span>
+          ${pvBadge(test.p)}
+          <span style="color:${ef.col};font-size:10px">${ef.txt}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Tableau complet — tous critères × toutes paires de techniques
+      <span style="margin-left:8px;font-size:10px;font-weight:400;color:var(--text3)">${sigCount} test(s) significatif(s) sur ${allTests.length}</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Paire</th><th>Comparaison</th>
+        ${CRIT.map(c=>`<th colspan="2" style="text-align:center">${CRIT_L[c]}</th>`).join('')}
+      </tr>
+      <tr>
+        <th></th><th></th>
+        ${CRIT.map(()=>'<th>Score Δ</th><th>p-val.</th>').join('')}
+      </tr></thead>
+      <tbody>${techPairs.map(([a,b])=>{
+        return`<tr>
+          <td style="font-weight:600"><span style="color:${T_COL[a]}">${a}</span>·<span style="color:${T_COL[b]}">${b}</span></td>
+          <td style="font-size:11px;color:var(--text3)">${T_LABEL[a].split(' ')[0]} vs ${T_LABEL[b].split(' ')[0]}</td>
+          ${CRIT.map(c=>{
+            const t=pairedTest(c,a,b);
+            if(!t)return'<td>—</td><td>—</td>';
+            const win=rank({[a]:t.mean,[b]:-t.mean,C:0,D:0})[0];
+            const winAB=t.mean>0?a:t.mean<0?b:'=';
+            return`<td class="mono" style="color:${winAB==='='?'var(--text)':T_COL[winAB]};font-weight:${t.p<0.05?700:400}">${t.mean>=0?'+':''}${t.mean.toFixed(2)}${t.p<0.05?' ★':''}</td>
+            <td>${pvBadge(t.p)}</td>`;
+          }).join('')}
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── VUE D'ENSEMBLE ────────────────────────────────────────────────────────────
+function tOverview(){
+  return`
+  <div class="note">${N} participants · Scores normalisés [−3.5 ; +3.5] · Positif = plus performant que la moyenne · Test t unilatéral H₀ : score = 0</div>
+  ${sigLegend()}
+  <p class="section-title">Préférence globale</p>
+  <div class="row-4">${TECHS.map(t=>techCard(t,SC['preference'],TT['preference'])).join('')}</div>
+  <div class="row" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Radar — tous critères</div>
+      <div class="legend">${TECHS.map(t=>`<span class="leg"><span class="leg-dot" style="background:${T_COL[t]}"></span>${t} — ${T_LABEL[t]}</span>`).join('')}</div>
+      <div class="chart-wrap"><canvas id="radar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Score moyen par critère</div>
+      ${CRIT.map(c=>{const sc=SC[c];const win=rank(sc)[0];
+        return`<div style="margin-bottom:.9rem">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">
+            <span>${CRIT_L[c]}</span><span style="color:${T_COL[win]}">→ ${win}</span>
+          </div>
+          ${TECHS.map(t=>hbar(`Extrait ${t}`,sc[t],T_COL[t])).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tableau récapitulatif — score moyen · p-value (t-test H₀=0) · significativité</div>
+    <table>
+      <thead><tr>
+        <th>Technique</th>
+        ${CRIT.map(c=>`<th colspan="2">${CRIT_L[c]}</th>`).join('')}
+        <th>Moy. glob.</th>
+      </tr>
+      <tr>
+        <th></th>
+        ${CRIT.map(()=>'<th>Score</th><th>p-val.</th>').join('')}
+        <th></th>
+      </tr></thead>
+      <tbody>${TECHS.map(t=>{
+        const avg=CRIT.reduce((s,c)=>s+SC[c][t],0)/CRIT.length;
+        return`<tr>
+          <td><span style="color:${T_COL[t]};font-weight:600">Extrait ${t}</span><br><span style="color:var(--text3);font-size:10px">${T_LABEL[t]}</span></td>
+          ${CRIT.map(c=>{
+            const v=SC[c][t],test=TT[c][t],win=rank(SC[c])[0]===t;
+            return`<td class="mono" style="font-weight:${win?700:400};color:${win?T_COL[t]:'var(--text)'}">${v>=0?'+':''}${v.toFixed(2)}${win?' ★':''}</td>
+            <td>${test?pvBadge(test.p):''}</td>`;
+          }).join('')}
+          <td class="mono" style="font-weight:600">${avg>=0?'+':''}${avg.toFixed(2)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── PAR PAIRE ─────────────────────────────────────────────────────────────────
+function tPairs(){
+  const desc={AB:`${T_LABEL.A} vs ${T_LABEL.B}`,AC:`${T_LABEL.A} vs ${T_LABEL.C}`,
+    AD:`${T_LABEL.A} vs ${T_LABEL.D}`,BC:`${T_LABEL.B} vs ${T_LABEL.C}`,
+    BD:`${T_LABEL.B} vs ${T_LABEL.D}`,CD:`${T_LABEL.C} vs ${T_LABEL.D}`};
+  return`
+  <div class="note">Test t sur les scores normalisés de chaque paire — H₀ : préférence nulle entre les deux extraits.</div>
+  ${sigLegend()}
+  <div class="row">${PAIRS.map(pair=>{
+    const [x,y]=pair.split('');
+    const critRows=CRIT.map(c=>{
+      const vals=pairVals(pair,c,DATA);
+      const test=tTest1(vals);
+      const mean=test?test.mean:0;
+      const dir=mean>0.2?y:mean<-0.2?x:'=';
+      return{c,mean,test,dir,vals};
+    });
+    const pref=critRows.find(r=>r.c==='preference');
+    const dir=pref&&(pref.mean>0.2?y:pref.mean<-0.2?x:'=');
+    return`<div class="card">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.75rem">
+        <div>
+          <span style="font-size:16px;font-weight:700;font-family:'Instrument Serif',serif">${pair}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:8px">${desc[pair]}</span>
+        </div>
+        <span style="font-size:11px;color:${dir==='='?'var(--text3)':T_COL[dir]};font-weight:600">${dir==='='?'≈ égalité':'→ '+dir+' préféré'}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:.4rem">
+        <span>← ${x} (${T_LABEL[x]})</span><span>${T_LABEL[y]} (${y}) →</span>
+      </div>
+      ${critRows.map(({c,mean,test,dir})=>`
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text3);width:95px;flex-shrink:0;text-align:right">${CRIT_L[c]}</span>
+          <div style="flex:1;height:14px;background:var(--bg);border-radius:2px;overflow:hidden;position:relative">
+            <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:var(--border2)"></div>
+            <div style="position:absolute;right:50%;width:${Math.max(0,Math.min(50,(-mean/3.5)*50))}%;height:100%;background:${T_COL[x]}"></div>
+            <div style="position:absolute;left:50%;width:${Math.max(0,Math.min(50,(mean/3.5)*50))}%;height:100%;background:${T_COL[y]}"></div>
+          </div>
+          <span style="width:28px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:${dir==='='?'var(--text3)':T_COL[dir]}">${dir==='='?'≈':'>'+dir}</span>
+          ${test?pvBadge(test.p):''}
+        </div>`).join('')}
+      <div style="font-size:10px;color:var(--text3);margin-top:.75rem">${DATA.filter(r=>validPair(r,pair)).length} participants valides</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── PAR CRITÈRE ───────────────────────────────────────────────────────────────
+function tCriteria(){
+  return`
+  <div class="note">Pour chaque critère, test t H₀ : score moyen de la technique = 0 (pas de différence avec la moyenne des adversaires directs).</div>
+  ${sigLegend()}
+  ${CRIT.map(c=>{
+    const sc=SC[c];const tt=TT[c];const r=rank(sc);
+    return`<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div class="card-title" style="margin-bottom:0">${CRIT_L[c]}</div>
+        <span style="font-size:11px;color:${T_COL[r[0]]}">Meilleur : Extrait ${r[0]} — ${T_LABEL[r[0]]}</span>
+      </div>
+      <div class="row-4" style="margin-bottom:.75rem">${TECHS.map(t=>techCard(t,sc,tt)).join('')}</div>
+      <div class="chart-wrap-sm"><canvas id="bc-${c}"></canvas></div>
+      <hr class="divider">
+      <table style="margin-top:.5rem">
+        <thead><tr><th>Extrait</th><th>Score</th><th>Moy.</th><th>IC 95%</th><th>t</th><th>df</th><th>p-value</th><th>Sig.</th></tr></thead>
+        <tbody>${TECHS.map(t=>{
+          const test=tt[t];if(!test)return'';
+          const ci=1.96*test.se;
+          return`<tr>
+            <td><span style="color:${T_COL[t]};font-weight:600">Extrait ${t}</span> <span style="font-size:10px;color:var(--text3)">${T_LABEL[t]}</span></td>
+            <td class="mono">${sc[t]>=0?'+':''}${sc[t].toFixed(3)}</td>
+            <td class="mono">${test.mean.toFixed(3)}</td>
+            <td class="mono" style="font-size:10px">[${(test.mean-ci).toFixed(2)} ; ${(test.mean+ci).toFixed(2)}]</td>
+            <td class="mono">${test.t.toFixed(3)}</td>
+            <td class="mono">${test.df}</td>
+            <td>${pvBadge(test.p)}</td>
+            <td style="font-weight:700;color:${test.p<0.05?T_COL[t]:'var(--text3)'}">${pvSymbol(test.p)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }).join('')}`;
+}
+
+// ── HYPOTHÈSES DIRECTES ──────────────────────────────────────────────────────
+function cohenD(vals){
+  if(vals.length<2)return null;
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const sd=Math.sqrt(vals.reduce((s,v)=>s+(v-mean)**2,0)/(vals.length-1));
+  return sd>0?mean/sd:0;
+}
+function effectLabel(d){
+  const a=Math.abs(d);
+  if(a>=0.8)return{txt:'Fort',col:'#059669'};
+  if(a>=0.5)return{txt:'Modéré',col:'#d97706'};
+  if(a>=0.2)return{txt:'Faible',col:'#6b7280'};
+  return{txt:'Négligeable',col:'#b0a99e'};
+}
+
+let hypoFilter={pair:'all',crit:'all'};
+function setHypoFilter(type,val){hypoFilter[type]=val;document.getElementById('content').innerHTML=tHypo();setTimeout(initCharts,30);}
+
+function tHypo(){
+  // Build all 30 tests: 6 pairs × 5 criteria
+  const tests=[];
+  PAIRS.forEach(pair=>{
+    const[x,y]=pair.split('');
+    CRIT.forEach(crit=>{
+      const vals=pairVals(pair,crit,DATA);
+      const t=tTest1(vals);
+      const d=cohenD(vals);
+      if(!t)return;
+      tests.push({pair,x,y,crit,vals,n:vals.length,mean:t.mean,se:t.se,t:t.t,df:t.df,p:t.p,d,
+        dir:t.mean>0?y:t.mean<0?x:'='});
+    });
+  });
+
+  const filtered=tests.filter(t=>
+    (hypoFilter.pair==='all'||t.pair===hypoFilter.pair)&&
+    (hypoFilter.crit==='all'||t.crit===hypoFilter.crit)
+  );
+  const sig=filtered.filter(t=>t.p<0.05).length;
+
+  // Heatmap data: pairs × criteria
+  const heatmap=PAIRS.map(pair=>{
+    const row={pair};
+    CRIT.forEach(crit=>{
+      const found=tests.find(t=>t.pair===pair&&t.crit===crit);
+      row[crit]=found;
+    });
+    return row;
+  });
+
+  return`
+  <div class="note">
+    Pour chaque paire de techniques et chaque critère : test t unilatéral H₀ = la moyenne des scores normalisés est nulle (pas de préférence).
+    Un résultat significatif signifie qu'une des deux techniques est perçue comme significativement supérieure à l'autre sur ce critère.
+  </div>
+  ${sigLegend()}
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Carte de chaleur — significativité par paire × critère</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">Intensité = taille d'effet (Cohen's d). Couleur = direction de préférence. Bordure = significativité.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;min-width:500px">
+        <thead><tr>
+          <th style="width:60px">Paire</th>
+          ${CRIT.map(c=>`<th style="text-align:center">${CRIT_L[c]}</th>`).join('')}
+        </tr></thead>
+        <tbody>${heatmap.map(row=>{
+          const[x,y]=row.pair.split('');
+          return`<tr>
+            <td style="font-weight:700;font-family:'Instrument Serif',serif;font-size:15px">${row.pair}
+              <div style="font-size:9px;color:var(--text3);font-family:'Instrument Sans',sans-serif;font-weight:400">${x} vs ${y}</div>
+            </td>
+            ${CRIT.map(c=>{
+              const t=row[c];if(!t)return'<td></td>';
+              const d=Math.abs(t.d||0);
+              const opacity=Math.max(0.12,Math.min(0.85,d/1.2));
+              const col=t.dir===y?T_COL[y]:t.dir===x?T_COL[x]:'#9ca3af';
+              const border=t.p<0.001?'3px':t.p<0.01?'2.5px':t.p<0.05?'2px':t.p<0.1?'1.5px':'1px';
+              const bStyle=t.p<0.1?'solid':'dashed';
+              return`<td style="text-align:center;padding:6px 4px">
+                <div style="background:${col};opacity:${opacity};border-radius:5px;padding:6px 4px;border:${border} ${bStyle} ${col};cursor:pointer"
+                     onclick="setHypoFilter('pair','${t.pair}');setHypoFilter('crit','${c}')">
+                  <div style="font-size:10px;font-weight:700;color:${opacity>0.45?'white':col};opacity:1">→${t.dir==='='?'=':`${t.dir}`}</div>
+                  <div style="font-size:9px;color:${opacity>0.45?'white':col};opacity:1">${pvSymbol(t.p)}</div>
+                </div>
+              </td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--text3);margin-top:.5rem">Cliquez sur une cellule pour filtrer le tableau ci-dessous.</p>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem">
+      <div class="card-title" style="margin-bottom:0">Filtres</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="crit-btn ${hypoFilter.pair==='all'?'on':''}" onclick="setHypoFilter('pair','all')">Toutes les paires</button>
+        ${PAIRS.map(p=>`<button class="crit-btn ${hypoFilter.pair===p?'on':''}" onclick="setHypoFilter('pair','${p}')">${p}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="crit-btn ${hypoFilter.crit==='all'?'on':''}" onclick="setHypoFilter('crit','all')">Tous les critères</button>
+        ${CRIT.map(c=>`<button class="crit-btn ${hypoFilter.crit===c?'on':''}" onclick="setHypoFilter('crit','${c}')">${CRIT_L[c]}</button>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">${filtered.length} test(s) affiché(s) · <strong style="color:${sig>0?T_COL.C:'var(--text2)'}">${sig} significatif(s) (p&lt;.05)</strong></div>
+    <table>
+      <thead><tr>
+        <th>Paire</th><th>Comparaison</th><th>Critère</th><th>n</th>
+        <th>Moyenne</th><th>IC 95%</th><th>t</th><th>df</th>
+        <th>p-value</th><th>Sig.</th><th>Cohen's d</th><th>Effet</th><th>Direction</th>
+      </tr></thead>
+      <tbody>${filtered.map(t=>{
+        const ci=(1.96*t.se).toFixed(2);
+        const ef=effectLabel(t.d);
+        return`<tr style="background:${t.p<0.05?T_COL[t.dir==='='?'A':t.dir]+'08':''}">
+          <td style="font-weight:700;font-family:'Instrument Serif',serif">${t.pair}</td>
+          <td style="font-size:11px"><span style="color:${T_COL[t.x]};font-weight:600">${t.x}</span> <span style="color:var(--text3)">vs</span> <span style="color:${T_COL[t.y]};font-weight:600">${t.y}</span></td>
+          <td style="font-size:11px">${CRIT_L[t.crit]}</td>
+          <td class="mono">${t.n}</td>
+          <td class="mono">${t.mean>=0?'+':''}${t.mean.toFixed(3)}</td>
+          <td class="mono" style="font-size:10px">[${(t.mean-parseFloat(ci)).toFixed(2)} ; ${(t.mean+parseFloat(ci)).toFixed(2)}]</td>
+          <td class="mono">${t.t.toFixed(3)}</td>
+          <td class="mono">${Math.round(t.df)}</td>
+          <td>${pvBadge(t.p)}</td>
+          <td style="font-weight:700;color:${t.p<0.05?T_COL[t.dir==='='?'A':t.dir]:'var(--text3)'}">${pvSymbol(t.p)}</td>
+          <td class="mono">${t.d>=0?'+':''}${t.d.toFixed(3)}</td>
+          <td style="color:${ef.col};font-weight:500;font-size:11px">${ef.txt}</td>
+          <td style="color:${t.dir==='='?'var(--text3)':T_COL[t.dir]};font-weight:600">
+            ${t.dir==='='?'≈ égal':`${T_LABEL[t.dir].split(' ')[0]} ${t.dir} préféré`}
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── TENDANCES VS ALÉATOIRE ───────────────────────────────────────────────────
+
+// Test binomial exact bilatéral (H₀ : p = 0.5)
+// P(X >= k | n, 0.5) = betaInc(0.5, k, n-k+1)
+function binomialCDF(k, n, p=0.5){
+  // P(X <= k) = I_{1-p}(n-k, k+1)
+  if(k<0) return 0; if(k>=n) return 1;
+  return betaInc(1-p, n-k, k+1);
+}
+function binomialTest(kPos, n){
+  // kPos = nb de participants préférant le second extrait (score normalisé > 0)
+  // Two-tailed: p = 2 * min(P(X<=kPos), P(X>=kPos))
+  if(n<1) return null;
+  const pLeft  = binomialCDF(kPos, n);         // P(X <= kPos)
+  const pRight = 1 - binomialCDF(kPos-1, n);   // P(X >= kPos)
+  const p = Math.min(1, 2 * Math.min(pLeft, pRight));
+  return { kPos, kNeg: n-kPos, n, propPos: kPos/n, p };
+}
+
+// Entropie de Shannon normalisée sur les scores NORMALISÉS [-3.5, +3.5]
+// binnés en 8 intervalles équidistants
+// 0 = tout le monde au même endroit · 1 = distribution parfaitement uniforme
+function entropy(normVals){
+  if(!normVals||normVals.length===0) return 0;
+  // 8 bins de -3.75 à +3.75 (intervalles de 0.875, centrés sur -3.5…+3.5)
+  const edges=[-3.75,-2.875,-2.0,-1.125,-0.25,0.625,1.5,2.375,3.75];
+  const freq=Array(8).fill(0);
+  normVals.forEach(v=>{
+    for(let i=0;i<8;i++){
+      if(v>=edges[i]&&v<edges[i+1]){freq[i]++;break;}
+    }
+    // bord supérieur
+    if(v>=3.75) freq[7]++;
+  });
+  const n=normVals.length;
+  const H=freq.reduce((h,f)=>{if(f===0)return h;const p=f/n;return h-p*Math.log2(p);},0);
+  return H/Math.log2(8);
+}
+
+// Consistance intra-participant pour une paire : écart-type des 5 réponses normalisées
+// Faible écart-type = participant cohérent sur les 5 critères
+function intraConsistency(row, pair){
+  if(!validPair(row,pair)) return null;
+  const scores = CRIT.map(c=>normScore(row[`${pair}_${c}`], row[`${pair}_premier`], pair))
+                      .filter(v=>v!==null);
+  if(scores.length<2) return null;
+  const m = scores.reduce((a,b)=>a+b,0)/scores.length;
+  return Math.sqrt(scores.reduce((s,v)=>s+(v-m)**2,0)/(scores.length-1));
+}
+
+let tendFilter = {pair:'all', crit:'all'};
+function setTendFilter(type,val){
+  tendFilter[type]=val;
+  document.getElementById('content').innerHTML=tTendance();
+  setTimeout(initCharts,30);
+}
+
+function tTendance(){
+  // Build test matrix: 6 pairs × 5 criteria
+  const tests = [];
+  PAIRS.forEach(pair=>{
+    const [x,y] = pair.split('');
+    CRIT.forEach(crit=>{
+      const rows = DATA.filter(r=>validPair(r,pair));
+      const normVals = rows.map(r=>normScore(r[`${pair}_${crit}`],r[`${pair}_premier`],pair)).filter(v=>v!==null);
+      const rawScores = rows.map(r=>parseFloat(r[`${pair}_${crit}`])).filter(v=>!isNaN(v));
+      const kPos = normVals.filter(v=>v>0).length;  // prefer y
+      const kNeg = normVals.filter(v=>v<0).length;  // prefer x
+      const kNeu = normVals.filter(v=>v===0).length;
+      const bt = binomialTest(kPos, normVals.length);
+      const ent = entropy(normVals);
+      tests.push({pair,x,y,crit,n:normVals.length,kPos,kNeg,kNeu,bt,ent,normVals,rawScores});
+    });
+  });
+
+  // Per-participant consistency
+  const consistency = DATA.map(row=>{
+    const sds = PAIRS.map(pair=>intraConsistency(row,pair)).filter(v=>v!==null);
+    const avgSD = sds.length ? sds.reduce((a,b)=>a+b,0)/sds.length : null;
+    return { pid: row.participant_id, avgSD, sds };
+  });
+  const meanSD = consistency.map(c=>c.avgSD).filter(v=>v!==null);
+  const globalMeanSD = meanSD.reduce((a,b)=>a+b,0)/meanSD.length;
+  const veryConsistent = consistency.filter(c=>c.avgSD!==null&&c.avgSD<1.0).length;
+  const veryRandom = consistency.filter(c=>c.avgSD!==null&&c.avgSD>2.5).length;
+
+  // Filter
+  const filtered = tests.filter(t=>
+    (tendFilter.pair==='all'||t.pair===tendFilter.pair)&&
+    (tendFilter.crit==='all'||t.crit===tendFilter.crit)
+  );
+  const nSig = filtered.filter(t=>t.bt&&t.bt.p<0.05).length;
+  const nTrend = filtered.filter(t=>t.bt&&t.bt.p<0.1).length;
+
+  return`
+  <div class="note">
+    <strong>Test binomial :</strong> H₀ = les participants choisissent au hasard (50/50 entre les deux extraits).
+    Un résultat significatif signifie qu'une majorité claire préfère un côté — ce n'est pas dû au hasard.<br>
+    <strong>Entropie :</strong> 1.0 = réponses uniformément réparties sur 1–8 (aléatoire pur) · 0.0 = tous au même endroit (consensus parfait).<br>
+    <strong>Consistance intra-participant :</strong> écart-type des 5 critères pour un même participant sur une paire — faible = jugement cohérent.
+  </div>
+  ${sigLegend()}
+
+  <!-- Heatmap binomial -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Carte de chaleur — test binomial (tendance vs aléatoire)</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Couleur = direction majoritaire · Intensité = force de la tendance · Bordure = significativité du test binomial
+    </p>
+    <div style="overflow-x:auto">
+      <table style="min-width:480px;width:100%">
+        <thead><tr>
+          <th>Paire</th>
+          ${CRIT.map(c=>`<th style="text-align:center">${CRIT_L[c]}</th>`).join('')}
+        </tr></thead>
+        <tbody>${PAIRS.map(pair=>{
+          const[x,y]=pair.split('');
+          return`<tr>
+            <td style="font-weight:700;font-family:'Instrument Serif',serif;font-size:15px">${pair}
+              <div style="font-size:9px;font-family:'Instrument Sans',sans-serif;font-weight:400;color:var(--text3)">${x} vs ${y}</div>
+            </td>
+            ${CRIT.map(c=>{
+              const t=tests.find(tt=>tt.pair===pair&&tt.crit===c);
+              if(!t||!t.bt)return'<td></td>';
+              const dir=t.kPos>t.kNeg?y:t.kPos<t.kNeg?x:'=';
+              const col=dir==='='?'#9ca3af':T_COL[dir];
+              const strength=Math.abs(t.bt.propPos-0.5)*2; // 0=neutral, 1=unanimous
+              const op=Math.max(0.1,Math.min(0.85,strength));
+              const bw=t.bt.p<0.001?3:t.bt.p<0.01?2.5:t.bt.p<0.05?2:t.bt.p<0.1?1.5:1;
+              const bs=t.bt.p<0.1?'solid':'dashed';
+              const pctPos=Math.round(t.bt.propPos*100);
+              return`<td style="text-align:center;padding:4px">
+                <div onclick="setTendFilter('pair','${pair}');setTendFilter('crit','${c}')"
+                  style="background:${col};opacity:${op};border-radius:5px;padding:6px 3px;
+                         border:${bw}px ${bs} ${col};cursor:pointer">
+                  <div style="font-size:11px;font-weight:700;color:${op>0.45?'white':col};opacity:1">
+                    ${pctPos}%→${dir==='='?'=':dir}
+                  </div>
+                  <div style="font-size:9px;color:${op>0.45?'rgba(255,255,255,.75)':'var(--text3)'};opacity:1">
+                    ${pvSymbol(t.bt.p)}
+                  </div>
+                  <div style="font-size:8px;color:${op>0.45?'rgba(255,255,255,.6)':'var(--text3)'};opacity:1">
+                    H=${t.ent.toFixed(2)}
+                  </div>
+                </div>
+              </td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--text3);margin-top:.5rem">
+      % = proportion préférant l'extrait indiqué · H = entropie normalisée · Cliquer = filtrer le tableau.
+    </p>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="stat-row">
+    <div class="stat-m"><div class="stat-m-val">${nSig}</div><div class="stat-m-label">Tests sig. (p&lt;.05) sur ${filtered.length}</div></div>
+    <div class="stat-m"><div class="stat-m-val">${nTrend}</div><div class="stat-m-label">Tendances (p&lt;.10)</div></div>
+    <div class="stat-m"><div class="stat-m-val">${(filtered.reduce((s,t)=>s+t.ent,0)/filtered.length).toFixed(2)}</div><div class="stat-m-label">Entropie moyenne</div></div>
+    <div class="stat-m"><div class="stat-m-val">${globalMeanSD.toFixed(2)}</div><div class="stat-m-label">SD intra-part. moyen</div></div>
+    <div class="stat-m"><div class="stat-m-val">${veryConsistent}</div><div class="stat-m-label">Participants très consistants (SD&lt;1)</div></div>
+    <div class="stat-m"><div class="stat-m-val">${veryRandom}</div><div class="stat-m-label">Participants dispersés (SD&gt;2.5)</div></div>
+  </div>
+
+  <!-- Filtres + tableau -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem">
+      <div class="card-title" style="margin-bottom:0">Filtres</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="crit-btn ${tendFilter.pair==='all'?'on':''}" onclick="setTendFilter('pair','all')">Toutes</button>
+        ${PAIRS.map(p=>`<button class="crit-btn ${tendFilter.pair===p?'on':''}" onclick="setTendFilter('pair','${p}')">${p}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="crit-btn ${tendFilter.crit==='all'?'on':''}" onclick="setTendFilter('crit','all')">Tous</button>
+        ${CRIT.map(c=>`<button class="crit-btn ${tendFilter.crit===c?'on':''}" onclick="setTendFilter('crit','${c}')">${CRIT_L[c]}</button>`).join('')}
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Paire</th><th>Critère</th><th>n</th>
+        <th>→ 1er (${PAIRS[0][0]}…)</th><th>Neutre</th><th>→ 2e (…${PAIRS[0][1]})</th>
+        <th>% majorité</th><th>p binomial</th><th>Sig.</th>
+        <th>Entropie H</th><th>Aléatoire ?</th>
+      </tr></thead>
+      <tbody>${filtered.map(t=>{
+        if(!t.bt)return'';
+        const dir=t.kPos>t.kNeg?t.y:t.kPos<t.kNeg?t.x:'=';
+        const pctMaj=dir==='='?50:Math.round(Math.max(t.bt.propPos,1-t.bt.propPos)*100);
+        const entropyLabel=t.ent>0.85?{txt:'Très dispersé',col:'#dc2626'}:t.ent>0.7?{txt:'Dispersé',col:'#d97706'}:t.ent>0.5?{txt:'Modéré',col:'#7c3aed'}:{txt:'Concentré',col:'#059669'};
+        return`<tr style="background:${t.bt.p<0.05?T_COL[dir==='='?'A':dir]+'08':''}">
+          <td style="font-weight:700;font-family:'Instrument Serif',serif">${t.pair}</td>
+          <td style="font-size:11px">${CRIT_L[t.crit]}</td>
+          <td class="mono">${t.n}</td>
+          <td class="mono" style="color:${T_COL[t.x]};font-weight:${t.kNeg>t.kPos?700:400}">${t.kNeg}</td>
+          <td class="mono" style="color:var(--text3)">${t.kNeu}</td>
+          <td class="mono" style="color:${T_COL[t.y]};font-weight:${t.kPos>t.kNeg?700:400}">${t.kPos}</td>
+          <td class="mono" style="font-weight:600;color:${dir==='='?'var(--text3)':T_COL[dir]}">${pctMaj}% → ${dir==='='?'=':dir}</td>
+          <td>${pvBadge(t.bt.p)}</td>
+          <td style="font-weight:700;color:${t.bt.p<0.05?T_COL[dir==='='?'A':dir]:'var(--text3)'}">${pvSymbol(t.bt.p)}</td>
+          <td class="mono">${t.ent.toFixed(3)}</td>
+          <td style="font-size:11px;color:${entropyLabel.col};font-weight:500">${entropyLabel.txt}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>
+
+  <!-- Consistance intra-participant -->
+  <div class="card">
+    <div class="card-title">Consistance intra-participant — écart-type des 5 critères par paire</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Faible SD = participant cohérent (tous ses critères convergent) · Fort SD = participant incertain ou contradictoire
+    </p>
+    <div style="position:relative;height:200px"><canvas id="consist-chart"></canvas></div>
+    <hr class="divider">
+    <table style="margin-top:.5rem">
+      <thead><tr><th>Participant</th>${PAIRS.map(p=>`<th style="text-align:center">SD ${p}</th>`).join('')}<th>SD moyen</th><th>Profil</th></tr></thead>
+      <tbody>${consistency.sort((a,b)=>(a.avgSD||99)-(b.avgSD||99)).map((c,i)=>{
+        if(c.avgSD===null)return'';
+        const prof=c.avgSD<1.0?{txt:'Cohérent',col:'#059669'}:c.avgSD<2.0?{txt:'Modéré',col:'#2563eb'}:c.avgSD<2.5?{txt:'Dispersé',col:'#d97706'}:{txt:'Très dispersé',col:'#dc2626'};
+        return`<tr>
+          <td style="font-size:11px;color:var(--text3)">P${i+1}</td>
+          ${c.sds.map(sd=>sd!==null?`<td class="mono" style="text-align:center;font-size:11px;color:${sd<1?'#059669':sd<2?'var(--text)':sd<2.5?'#d97706':'#dc2626'}">${sd.toFixed(2)}</td>`:'<td style="text-align:center;color:var(--text3)">—</td>').join('')}
+          <td class="mono" style="font-weight:600">${c.avgSD.toFixed(2)}</td>
+          <td style="color:${prof.col};font-weight:600;font-size:12px">${prof.txt}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// ── CORRÉLATIONS INTER-CRITÈRES ──────────────────────────────────────────────
+function pearsonTest(a, b){
+  const n=a.length;if(n<3)return{r:0,p:1,t:0,r2:0,n};
+  const ma=a.reduce((s,v)=>s+v,0)/n, mb=b.reduce((s,v)=>s+v,0)/n;
+  const num=a.reduce((s,v,i)=>s+(v-ma)*(b[i]-mb),0);
+  const da=Math.sqrt(a.reduce((s,v)=>s+(v-ma)**2,0));
+  const db=Math.sqrt(b.reduce((s,v)=>s+(v-mb)**2,0));
+  const r=(da*db)>0?num/(da*db):0;
+  const t=r*Math.sqrt(n-2)/Math.sqrt(Math.max(1e-10,1-r*r));
+  const p=tPValue(Math.abs(t),n-2);
+  return{r,r2:r*r,t,p,n};
+}
+
+function corrLabel(r){
+  const a=Math.abs(r);
+  if(a>=0.7)return{txt:'Forte',col:'#059669'};
+  if(a>=0.5)return{txt:'Modérée',col:'#2563eb'};
+  if(a>=0.3)return{txt:'Faible',col:'#d97706'};
+  return{txt:'Très faible',col:'#9ca3af'};
+}
+
+function tCorr(){
+  // Build observation matrix: all (participant × pair) valid rows
+  const obs=[];
+  DATA.forEach(row=>{
+    PAIRS.forEach(pair=>{
+      if(!validPair(row,pair))return;
+      const scores=CRIT.map(c=>normScore(row[`${pair}_${c}`],row[`${pair}_premier`],pair));
+      if(scores.every(v=>v!==null)) obs.push(scores);
+    });
+  });
+  const n=obs.length;
+  const cols=CRIT.map((_,ci)=>obs.map(row=>row[ci]));
+
+  // Full correlation matrix
+  const R=CRIT.map((_,i)=>CRIT.map((_,j)=>pearsonTest(cols[i],cols[j])));
+
+  // All pairs sorted by |r|
+  const pairs=[];
+  CRIT.forEach((_,i)=>CRIT.forEach((_,j)=>{
+    if(j>i) pairs.push({i,j,ci:CRIT[i],cj:CRIT[j],...R[i][j]});
+  }));
+  pairs.sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
+
+  // Color scale for heatmap cells
+  function cellColor(r){
+    const a=Math.abs(r);
+    const base=r>=0?[5,150,105]:[220,38,38];
+    const op=Math.max(0.08,Math.min(0.9,a));
+    return`rgba(${base[0]},${base[1]},${base[2]},${op})`;
+  }
+
+  return`
+  <div class="note">
+    Corrélations de Pearson calculées sur <strong>${n} observations</strong> (30 participants × 6 paires).
+    Chaque observation est le vecteur des 5 scores normalisés d'un participant pour une paire donnée.
+    Test de significativité : H₀ = r = 0, t(${n-2}) = r × √(n−2) / √(1−r²).
+  </div>
+  ${sigLegend()}
+
+  <!-- Heatmap -->
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Matrice de corrélation inter-critères (r de Pearson)</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Vert = corrélation positive · Rouge = corrélation négative · Intensité = force de la corrélation
+    </p>
+    <div style="overflow-x:auto">
+      <table style="border-collapse:separate;border-spacing:4px;min-width:480px">
+        <thead><tr>
+          <th style="width:120px"></th>
+          ${CRIT.map(c=>`<th style="text-align:center;font-size:11px;padding:4px">${CRIT_L[c]}</th>`).join('')}
+        </tr></thead>
+        <tbody>${CRIT.map((ci,i)=>`<tr>
+          <th style="text-align:right;font-size:11px;padding-right:8px;font-weight:500">${CRIT_L[ci]}</th>
+          ${CRIT.map((cj,j)=>{
+            if(i===j)return`<td style="background:var(--border);border-radius:6px;height:56px;text-align:center;font-size:11px;color:var(--text3)">—</td>`;
+            const {r,r2,p}=R[i][j];
+            const bg=cellColor(r);
+            const textCol=Math.abs(r)>0.5?'white':'var(--text)';
+            const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+            const bw=p<0.001?3:p<0.01?2.5:p<0.05?2:p<0.1?1.5:1;
+            const bstyle=p<0.1?'solid':'dashed';
+            return`<td style="text-align:center;padding:3px">
+              <div style="background:${bg};border-radius:6px;padding:8px 4px;
+                          border:${bw}px ${bstyle} rgba(0,0,0,.15);height:56px;
+                          display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:${textCol}">
+                  ${r>=0?'+':''}${r.toFixed(2)}
+                </div>
+                <div style="font-size:9px;color:${textCol};opacity:.8">${sig}</div>
+              </div>
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Two-cluster interpretation -->
+  <div class="row" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-title">Structure bidimensionnelle détectée</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">
+        Les corrélations révèlent deux pôles perceptifs distincts :
+      </p>
+      <div style="border-left:3px solid #059669;padding:.75rem 1rem;margin-bottom:.75rem;background:rgba(5,150,105,.05);border-radius:0 6px 6px 0">
+        <div style="font-size:13px;font-weight:600;color:#059669;margin-bottom:.25rem">Pôle esthétique</div>
+        <div style="font-size:12px;color:var(--text2)">Préférence · Expressivité · Équilibre</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:.25rem">
+          Corrélations internes : r = 0,650 à 0,779 — très cohérentes
+        </div>
+      </div>
+      <div style="border-left:3px solid #2563eb;padding:.75rem 1rem;margin-bottom:.75rem;background:rgba(37,99,235,.05);border-radius:0 6px 6px 0">
+        <div style="font-size:13px;font-weight:600;color:#2563eb;margin-bottom:.25rem">Pôle acoustique-technique</div>
+        <div style="font-size:12px;color:var(--text2)">Niveau de la voix · Intelligibilité</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:.25rem">
+          Corrélation interne : r = 0,693 — forte · Lien faible avec le pôle esthétique (r = 0,196 à 0,216)
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);padding:.5rem;background:var(--bg);border-radius:4px">
+        L'Intelligibilité joue un rôle intermédiaire (r = 0,496 avec Préférence), faisant le lien entre les deux pôles.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Visualisation — graphe des corrélations</div>
+      <div style="position:relative;height:260px"><canvas id="corr-radar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Detailed table -->
+  <div class="card">
+    <div class="card-title">Tableau détaillé — toutes les paires de critères (triées par |r|)</div>
+    <table>
+      <thead><tr>
+        <th>Critère 1</th><th>Critère 2</th>
+        <th>r</th><th>r²</th><th>t</th><th>df</th>
+        <th>p-value</th><th>Sig.</th><th>Force</th><th>Interprétation</th>
+      </tr></thead>
+      <tbody>${pairs.map(({i,j,ci,cj,r,r2,t,p,n})=>{
+        const lbl=corrLabel(r);
+        const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+        const isKey=(ci==='preference'&&cj==='niveau')||(ci==='niveau'&&cj==='equilibre');
+        return`<tr style="background:${isKey?'rgba(220,38,38,.04)':''}">
+          <td style="font-weight:500">${CRIT_L[ci]}</td>
+          <td style="font-weight:500">${CRIT_L[cj]}</td>
+          <td class="mono" style="font-weight:600;color:${r>=0?'#059669':'#dc2626'}">${r>=0?'+':''}${r.toFixed(3)}</td>
+          <td class="mono">${r2.toFixed(3)}</td>
+          <td class="mono">${t.toFixed(2)}</td>
+          <td class="mono">${n-2}</td>
+          <td>${pvBadge(p)}</td>
+          <td style="font-weight:700;color:${p<0.05?'#059669':'var(--text3)'}">${sig}</td>
+          <td style="color:${lbl.col};font-weight:500;font-size:11px">${lbl.txt}</td>
+          <td style="font-size:11px;color:var(--text3)">${
+            Math.abs(r)>=0.7?`${(r2*100).toFixed(0)}% de variance partagée`:
+            Math.abs(r)>=0.5?`Lien significatif, ${(r2*100).toFixed(0)}% variance commune`:
+            Math.abs(r)>=0.3?`Lien modeste (${(r2*100).toFixed(0)}% variance)`:
+            `Lien très faible — dimensions indépendantes`
+          }</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    <div style="margin-top:.75rem;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:.5rem">
+      r² = coefficient de détermination (proportion de variance partagée entre deux critères) · n = ${n} observations
+    </div>
+  </div>`;
+}
+
+// ── CORRÉLATIONS PAR PAIRE ───────────────────────────────────────────────────
+function tCorrPairs(){
+  // For each pair, build obs matrix (n participants × 5 criteria)
+  const pairData = PAIRS.map(pair=>{
+    const rows = DATA.filter(r=>validPair(r,pair));
+    const obs = rows.map(row=>{
+      const scores = CRIT.map(c=>normScore(row[`${pair}_${c}`],row[`${pair}_premier`],pair));
+      return scores.every(v=>v!==null) ? scores : null;
+    }).filter(v=>v!==null);
+    const cols = CRIT.map((_,ci)=>obs.map(row=>row[ci]));
+    const R = CRIT.map((_,i)=>CRIT.map((_,j)=>pearsonTest(cols[i],cols[j])));
+    // Mean |r| across all off-diagonal pairs = global coherence index
+    const offDiag = [];
+    CRIT.forEach((_,i)=>CRIT.forEach((_,j)=>{ if(j>i) offDiag.push(Math.abs(R[i][j].r)); }));
+    const meanR = offDiag.reduce((a,b)=>a+b,0)/offDiag.length;
+    return { pair, obs, cols, R, n:obs.length, meanR };
+  });
+
+  function cellColor(r){
+    const a=Math.abs(r);
+    const base=r>=0?[5,150,105]:[220,38,38];
+    const op=Math.max(0.08,Math.min(0.88,a));
+    return `rgba(${base[0]},${base[1]},${base[2]},${op})`;
+  }
+
+  function miniMatrix(pd){
+    const {pair,R,n}=pd;
+    const [x,y]=pair.split('');
+    return`<div class="card" style="padding:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div>
+          <span style="font-family:'Instrument Serif',serif;font-size:18px;font-weight:700">${pair}</span>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">
+            <span style="color:${T_COL[x]}">${T_LABEL[x].split(' ')[0]} ${x}</span>
+            <span style="color:var(--text3)"> vs </span>
+            <span style="color:${T_COL[y]}">${T_LABEL[y].split(' ')[0]} ${y}</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;
+               color:${pd.meanR>0.6?'#059669':pd.meanR>0.45?'#2563eb':'#d97706'}">
+            r̄ = ${pd.meanR.toFixed(3)}
+          </div>
+          <div style="font-size:10px;color:var(--text3)">cohérence moy. · n=${n}</div>
+        </div>
+      </div>
+      <table style="border-collapse:separate;border-spacing:2px;width:100%">
+        <thead><tr>
+          <th style="width:70px"></th>
+          ${CRIT.map(c=>`<th style="text-align:center;font-size:9px;padding:2px;color:var(--text3)">${CRIT_L[c].slice(0,5)}.</th>`).join('')}
+        </tr></thead>
+        <tbody>${CRIT.map((ci,i)=>`<tr>
+          <th style="text-align:right;font-size:9px;padding-right:4px;font-weight:500;color:var(--text2)">${CRIT_L[ci].slice(0,7)}.</th>
+          ${CRIT.map((cj,j)=>{
+            if(i===j) return`<td style="background:var(--border);border-radius:3px;height:36px"></td>`;
+            const {r,p}=R[i][j];
+            const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'';
+            const bg=cellColor(r);
+            const textCol=Math.abs(r)>0.55?'white':'var(--text)';
+            return`<td style="text-align:center;padding:1px">
+              <div style="background:${bg};border-radius:3px;height:36px;
+                          display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:${textCol}">
+                  ${r>=0?'+':''}${r.toFixed(2)}
+                </div>
+                <div style="font-size:8px;color:${textCol};opacity:.8">${sig}</div>
+              </div>
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  // Comparative table: for each criteria pair, r across all 6 pairs
+  const critPairs=[];
+  CRIT.forEach((_,i)=>CRIT.forEach((_,j)=>{ if(j>i) critPairs.push([i,j]); }));
+
+  return`
+  <div class="note">
+    Pour chaque comparaison directe (AB, AC…), corrélations de Pearson entre les 5 critères,
+    calculées sur les 30 scores normalisés de cette paire.
+    Le r̄ (r moyen) mesure la cohérence globale des critères pour cette comparaison.
+  </div>
+  ${sigLegend()}
+
+  <p class="section-title">Matrices par paire — cohérence inter-critères</p>
+  <div class="row">${pairData.map(pd=>miniMatrix(pd)).join('')}</div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Synthèse — r par paire de critères, pour chaque comparaison</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Chaque ligne = une paire de critères · Chaque colonne = une comparaison entre extraits ·
+      Les cellules montrent le r de Pearson avec sa significativité.
+    </p>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Critère 1</th><th>Critère 2</th>
+          ${PAIRS.map(p=>`<th style="text-align:center">${p}</th>`).join('')}
+          <th>r̄ global</th>
+        </tr></thead>
+        <tbody>${critPairs.map(([i,j])=>{
+          const globalR=pearsonTest(
+            [].concat(...pairData.map(pd=>pd.cols[i])),
+            [].concat(...pairData.map(pd=>pd.cols[j]))
+          );
+          const rowRs=pairData.map(pd=>pd.R[i][j]);
+          const meanAbsR=rowRs.reduce((s,{r})=>s+Math.abs(r),0)/rowRs.length;
+          const isWeak=(i===0&&j===1)||(i===1&&j===4); // Pref×Niveau, Niveau×Équilibre
+          return`<tr style="background:${isWeak?'rgba(220,38,38,.03)':''}">
+            <td style="font-size:12px;font-weight:500">${CRIT_L[CRIT[i]]}</td>
+            <td style="font-size:12px;font-weight:500">${CRIT_L[CRIT[j]]}</td>
+            ${rowRs.map(({r,p})=>{
+              const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+              const col=Math.abs(r)>=0.6?'#059669':Math.abs(r)>=0.4?'#2563eb':Math.abs(r)>=0.2?'#d97706':'#9ca3af';
+              return`<td style="text-align:center">
+                <span class="mono" style="font-size:11px;color:${col};font-weight:${Math.abs(r)>=0.5?600:400}">
+                  ${r>=0?'+':''}${r.toFixed(2)}
+                </span>
+                <div style="font-size:9px;color:var(--text3)">${sig}</div>
+              </td>`;
+            }).join('')}
+            <td style="text-align:center">
+              <span class="mono" style="font-weight:600;color:${globalR.r>=0.6?'#059669':globalR.r>=0.4?'#2563eb':'#d97706'}">
+                ${globalR.r>=0?'+':''}${globalR.r.toFixed(3)}
+              </span>
+              <div style="font-size:9px">${pvBadge(globalR.p)}</div>
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cohérence moyenne r̄ par paire de comparaison</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Un r̄ élevé indique que les participants ont jugé les 5 critères de façon convergente
+      pour cette comparaison — la différence entre les deux extraits était claire et multidimensionnelle.
+    </p>
+    <div style="position:relative;height:200px"><canvas id="corrpairs-bar"></canvas></div>
+    <hr class="divider">
+    <div class="row-3">
+      ${pairData.sort((a,b)=>b.meanR-a.meanR).map((pd,i)=>{
+        const [x,y]=pd.pair.split('');
+        const lbl=pd.meanR>0.6?{txt:'Cohérence forte',col:'#059669'}:pd.meanR>0.45?{txt:'Bonne cohérence',col:'#2563eb'}:{txt:'Cohérence modérée',col:'#d97706'};
+        return`<div style="padding:.75rem;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:.4rem">
+            <span style="font-size:14px;font-weight:700;font-family:'Instrument Serif',serif">${['①','②','③','④','⑤','⑥'][i]} ${pd.pair}</span>
+            <span style="font-size:10px;color:${lbl.col};font-weight:600">${lbl.txt}</span>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:22px;color:${lbl.col}">${pd.meanR.toFixed(3)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">
+            <span style="color:${T_COL[x]}">${x}</span> vs <span style="color:${T_COL[y]}">${y}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ── CORRÉLATIONS PAR PAIRE ───────────────────────────────────────────────────
+let corrPairsCrit = 'preference';
+function setCorrPairsCrit(c){corrPairsCrit=c;destroyCharts();document.getElementById('content').innerHTML=tCorrPairs();setTimeout(initCharts,30);}
+
+function tCorrPairs(){
+  // For each participant and each technique, compute aggregated score
+  // Then correlate technique X vs technique Y across participants
+  function getTechVectors(crit){
+    return TECHS.map(tech=>
+      DATA.map(row=>{
+        const vals=[];
+        PAIRS.forEach(pair=>{
+          if(!validPair(row,pair))return;
+          const[x,y]=pair.split('');
+          if(x!==tech&&y!==tech)return;
+          const v=normScore(row[`${pair}_${crit}`],row[`${pair}_premier`],pair);
+          if(v!==null) vals.push(tech===y?v:-v);
+        });
+        return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+      })
+    );
+  }
+
+  // Build matrix for current criterion
+  const vecs = getTechVectors(corrPairsCrit);
+  // Only keep participants with all 4 technique scores valid
+  const validIdx = DATA.map((_,i)=>vecs.every(v=>v[i]!==null)?i:null).filter(v=>v!==null);
+  const cleanVecs = vecs.map(v=>validIdx.map(i=>v[i]));
+  const n = validIdx.length;
+
+  // 4×4 correlation matrix
+  const R = TECHS.map((_,i)=>TECHS.map((_,j)=>pearsonTest(cleanVecs[i],cleanVecs[j])));
+
+  function cellColor(r){
+    const a=Math.abs(r);
+    const base=r>=0?[5,150,105]:[220,38,38];
+    const op=Math.max(0.08,Math.min(0.88,a));
+    return`rgba(${base[0]},${base[1]},${base[2]},${op})`;
+  }
+
+  // All off-diagonal pairs for detail table
+  const pairs=[];
+  TECHS.forEach((_,i)=>TECHS.forEach((_,j)=>{
+    if(j>i) pairs.push({i,j,...R[i][j]});
+  }));
+  pairs.sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
+
+  // Build one matrix per criterion for the comparative table
+  const allCritR = CRIT.map(c=>{
+    const v=getTechVectors(c);
+    const vi=DATA.map((_,i)=>v.every(vv=>vv[i]!==null)?i:null).filter(v=>v!==null);
+    const cv=v.map(vv=>vi.map(i=>vv[i]));
+    return TECHS.map((_,i)=>TECHS.map((_,j)=>pearsonTest(cv[i],cv[j])));
+  });
+
+  // Average matrix across all criteria
+  const avgVecs = TECHS.map((_,ti)=>{
+    return DATA.map((_,pi)=>{
+      const critScores = CRIT.map(c=>{
+        const allTechVecs = getTechVectors(c);
+        return allTechVecs[ti][pi];
+      });
+      return critScores.every(v=>v!==null) ? critScores.reduce((a,b)=>a+b,0)/critScores.length : null;
+    });
+  });
+  const avgValidIdx = DATA.map((_,i)=>avgVecs.every(v=>v[i]!==null)?i:null).filter(v=>v!==null);
+  const avgCleanVecs = avgVecs.map(v=>avgValidIdx.map(i=>v[i]));
+  const nAvg = avgValidIdx.length;
+  const Ravg = TECHS.map((_,i)=>TECHS.map((_,j)=>pearsonTest(avgCleanVecs[i],avgCleanVecs[j])));
+  const avgPairs = [];
+  TECHS.forEach((_,i)=>TECHS.forEach((_,j)=>{if(j>i) avgPairs.push({i,j,...Ravg[i][j]});}));
+  avgPairs.sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
+
+  const out = `
+  <div class="note">
+    Pour chaque paire de techniques (A, B, C, D), corrélation de Pearson entre leurs scores agrégés
+    par participant. Un r élevé signifie que les participants qui apprécient une technique tendent
+    aussi à apprécier l'autre. Scores agrégés par la méthode du round-robin sur les 3 paires
+    où chaque technique apparaît (n = ${n} participants avec scores complets).
+  </div>
+  ${sigLegend()}
+
+  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem">
+    <span class="section-title" style="margin-bottom:0">Critère :</span>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${CRIT.map(c=>`<button class="crit-btn ${corrPairsCrit===c?'on':''}" onclick="setCorrPairsCrit('${c}')">${CRIT_L[c]}</button>`).join('')}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Matrice moyenne — tous critères confondus</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Scores par technique moyennés sur les 5 critères avant calcul des corrélations.
+      Donne une image globale des profils de réponse par technique.
+    </p>
+    <table style="border-collapse:separate;border-spacing:5px;margin:0 auto">
+      <thead><tr>
+        <th style="width:80px"></th>
+        ${TECHS.map(t=>'<th style="text-align:center;width:100px"><span style="color:'+T_COL[t]+';font-weight:700">Extrait '+t+'</span><div style="font-size:9px;color:var(--text3);font-weight:400">'+T_LABEL[t].split(' ')[0]+'</div></th>').join('')}
+      </tr></thead>
+      <tbody>${TECHS.map((ti,i)=>'<tr><th style="text-align:right;padding-right:8px"><span style="color:'+T_COL[ti]+';font-weight:700">Extrait '+ti+'</span><div style="font-size:9px;color:var(--text3);font-weight:400">'+T_LABEL[ti].split(' ')[0]+'</div></th>'+
+        TECHS.map((tj,j)=>{
+          if(i===j) return'<td><div style="background:'+T_COL[ti]+'22;border:2px solid '+T_COL[ti]+';border-radius:8px;height:80px;display:flex;align-items:center;justify-content:center"><span style="font-family:IBM Plex Mono,monospace;font-size:18px;font-weight:700;color:'+T_COL[ti]+'">1.00</span></div></td>';
+          const {r,p}=Ravg[i][j];
+          const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+          const bg=cellColor(r);
+          const textCol=Math.abs(r)>0.5?'white':'var(--text)';
+          const bw=p<0.001?3:p<0.01?2.5:p<0.05?2:p<0.1?1.5:1;
+          const bs=p<0.1?'solid':'dashed';
+          return'<td style="padding:2px"><div style="background:'+bg+';border-radius:8px;border:'+bw+'px '+bs+' rgba(0,0,0,.18);height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-family:IBM Plex Mono,monospace;font-size:18px;font-weight:700;color:'+textCol+'">'+(r>=0?'+':'')+r.toFixed(2)+'</div><div style="font-size:10px;color:'+textCol+';opacity:.8;margin-top:2px">'+sig+'</div></div></td>';
+        }).join('')+'</tr>').join('')}</tbody>
+    </table>
+    <p style="font-size:10px;color:var(--text3);margin-top:1rem;text-align:center">n = ${nAvg} participants · moyenne des 5 critères par participant</p>
+    <hr class="divider">
+    <table style="margin-top:.5rem">
+      <thead><tr><th>Paire</th><th>r</th><th>r²</th><th>t</th><th>p-val.</th><th>Sig.</th><th>Interprétation</th></tr></thead>
+      <tbody>${avgPairs.map(({i,j,r,r2,t,p})=>{
+        const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+        const lbl=corrLabel(r);
+        const interp=r>0.5?'Profils similaires':r>0.2?'Légère similitude':r<-0.5?'Profils opposés':r<-0.2?'Légère opposition':'Indépendants';
+        return'<tr><td style="font-weight:600"><span style="color:'+T_COL[TECHS[i]]+'">'+TECHS[i]+'</span> <span style="color:var(--text3)">×</span> <span style="color:'+T_COL[TECHS[j]]+'">'+TECHS[j]+'</span></td><td class="mono" style="color:'+(r>=0?'#059669':'#dc2626')+';font-weight:600">'+(r>=0?'+':'')+r.toFixed(3)+'</td><td class="mono">'+r2.toFixed(3)+'</td><td class="mono">'+t.toFixed(2)+'</td><td>'+pvBadge(p)+'</td><td style="font-weight:700;color:'+(p<0.05?'#059669':'var(--text3)')+'">'+sig+'</td><td style="font-size:11px;color:'+lbl.col+'">'+interp+'</td></tr>';
+      }).join('')}</tbody>
+    </table>
+  </div>
+
+  <div class="row" style="margin-bottom:14px">
+    <!-- 4×4 heatmap -->
+    <div class="card">
+      <div class="card-title">Matrice de corrélation — ${CRIT_L[corrPairsCrit]}</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+        Vert = corrélation positive · Rouge = négative · Intensité = force · Bordure = significativité
+      </p>
+      <table style="border-collapse:separate;border-spacing:5px;margin:0 auto">
+        <thead><tr>
+          <th style="width:80px"></th>
+          ${TECHS.map(t=>`<th style="text-align:center;width:100px">
+            <span style="color:${T_COL[t]};font-weight:700">Extrait ${t}</span>
+            <div style="font-size:9px;color:var(--text3);font-weight:400">${T_LABEL[t].split(' ')[0]}</div>
+          </th>`).join('')}
+        </tr></thead>
+        <tbody>${TECHS.map((ti,i)=>`<tr>
+          <th style="text-align:right;padding-right:8px">
+            <span style="color:${T_COL[ti]};font-weight:700">Extrait ${ti}</span>
+            <div style="font-size:9px;color:var(--text3);font-weight:400">${T_LABEL[ti].split(' ')[0]}</div>
+          </th>
+          ${TECHS.map((tj,j)=>{
+            if(i===j) return`<td style="height:80px">
+              <div style="background:${T_COL[ti]}22;border:2px solid ${T_COL[ti]};border-radius:8px;height:80px;
+                          display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:${T_COL[ti]}">1.00</span>
+              </div>
+            </td>`;
+            const {r,p}=R[i][j];
+            const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+            const bg=cellColor(r);
+            const textCol=Math.abs(r)>0.5?'white':'var(--text)';
+            const bw=p<0.001?3:p<0.01?2.5:p<0.05?2:p<0.1?1.5:1;
+            const bs=p<0.1?'solid':'dashed';
+            return`<td style="padding:2px">
+              <div style="background:${bg};border-radius:8px;border:${bw}px ${bs} rgba(0,0,0,.18);
+                          height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:${textCol}">
+                  ${r>=0?'+':''}${r.toFixed(2)}
+                </div>
+                <div style="font-size:10px;color:${textCol};opacity:.8;margin-top:2px">${sig}</div>
+              </div>
+            </td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+      <p style="font-size:10px;color:var(--text3);margin-top:1rem;text-align:center">
+        n = ${n} participants · df = ${n-2} · Test t de significativité H₀ : r = 0
+      </p>
+    </div>
+
+    <!-- Detail table -->
+    <div class="card">
+      <div class="card-title">Détail — ${CRIT_L[corrPairsCrit]}</div>
+      <table>
+        <thead><tr>
+          <th>Paire</th><th>r</th><th>r²</th><th>t</th><th>p-val.</th><th>Sig.</th><th>Interprétation</th>
+        </tr></thead>
+        <tbody>${pairs.map(({i,j,r,r2,t,p})=>{
+          const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+          const lbl=corrLabel(r);
+          const interp=r>0.5?'Profils similaires':r>0.2?'Légère similitude':r<-0.5?'Profils opposés':r<-0.2?'Légère opposition':'Indépendants';
+          return`<tr>
+            <td>
+              <span style="color:${T_COL[TECHS[i]]};font-weight:700">${TECHS[i]}</span>
+              <span style="color:var(--text3)"> × </span>
+              <span style="color:${T_COL[TECHS[j]]};font-weight:700">${TECHS[j]}</span>
+            </td>
+            <td class="mono" style="color:${r>=0?'#059669':'#dc2626'};font-weight:600">${r>=0?'+':''}${r.toFixed(3)}</td>
+            <td class="mono">${r2.toFixed(3)}</td>
+            <td class="mono">${t.toFixed(2)}</td>
+            <td>${pvBadge(p)}</td>
+            <td style="font-weight:700;color:${p<0.05?'#059669':'var(--text3)'}">${sig}</td>
+            <td style="font-size:11px;color:${lbl.col}">${interp}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Comparative table: all criteria -->
+  <div class="card">
+    <div class="card-title">Tableau comparatif — corrélations A×B×C×D pour tous les critères</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">
+      Chaque cellule = r de Pearson entre les scores agrégés des deux techniques pour ce critère.
+    </p>
+    <table>
+      <thead><tr>
+        <th>Paire</th>
+        ${CRIT.map(c=>'<th style="text-align:center">'+CRIT_L[c]+'</th>').join('')}
+      </tr></thead>
+      <tbody id="comp-tbody"></tbody>
+    </table>
+  </div>`;
+
+  // Populate comparative table after render (avoids deep nesting)
+  setTimeout(()=>{
+    const tbody=document.getElementById('comp-tbody');
+    if(!tbody)return;
+    let html='';
+    TECHS.forEach((ti,i)=>TECHS.forEach((tj,j)=>{
+      if(j<=i)return;
+      html+='<tr><td style="font-weight:600"><span style="color:'+T_COL[ti]+'">'+ti+'</span>'
+           +' <span style="color:var(--text3)">×</span> '
+           +'<span style="color:'+T_COL[tj]+'">'+tj+'</span></td>';
+      allCritR.forEach((Rc,ci)=>{
+        const {r,p}=Rc[i][j];
+        const sig=p<0.001?'***':p<0.01?'**':p<0.05?'*':p<0.1?'†':'ns';
+        const col=Math.abs(r)>=0.5?'#059669':Math.abs(r)>=0.3?'#2563eb':Math.abs(r)>=0.1?'#d97706':'#9ca3af';
+        const isCurrent=CRIT[ci]===corrPairsCrit;
+        html+='<td style="text-align:center;background:'+(isCurrent?'rgba(37,99,235,.05)':'')+'">'+
+          '<span class="mono" style="font-size:11px;font-weight:'+(isCurrent?700:400)+';color:'+col+'">'+
+          (r>=0?'+':'')+r.toFixed(2)+'</span>'+
+          '<div style="font-size:9px;color:var(--text3)">'+sig+'</div></td>';
+      });
+      html+='</tr>';
+    }));
+    tbody.innerHTML=html;
+  },50);
+
+  return out;
+}
+
+// ── ALPHA DE CRONBACH ────────────────────────────────────────────────────────
+// Calcul sur les scores normalisés par paire et par critère.
+// Pour chaque participant, chaque paire donne un vecteur de 5 scores (un par critère).
+// L'alpha teste si les 5 critères sont cohérents au sein de chaque paire.
+
+function variance(arr){
+  if(arr.length<2)return 0;
+  const m=arr.reduce((a,b)=>a+b,0)/arr.length;
+  return arr.reduce((s,v)=>s+(v-m)**2,0)/(arr.length-1);
+}
+function covariance(a,b){
+  if(a.length!==b.length||a.length<2)return 0;
+  const ma=a.reduce((s,v)=>s+v,0)/a.length;
+  const mb=b.reduce((s,v)=>s+v,0)/b.length;
+  return a.reduce((s,v,i)=>s+(v-ma)*(b[i]-mb),0)/(a.length-1);
+}
+function pearsonR(a,b){
+  const cov=covariance(a,b);
+  const sd=Math.sqrt(variance(a)*variance(b));
+  return sd>0?cov/sd:0;
+}
+
+// Cronbach alpha sur une matrice items×observations (array of arrays)
+function cronbachAlpha(itemArrays){
+  const k=itemArrays.length;
+  if(k<2)return null;
+  const n=itemArrays[0].length;
+  if(n<3)return null;
+  const sumVarItems=itemArrays.reduce((s,col)=>s+variance(col),0);
+  // Variance de la somme
+  const totals=Array.from({length:n},(_,i)=>itemArrays.reduce((s,col)=>s+col[i],0));
+  const varTot=variance(totals);
+  if(varTot===0)return null;
+  const alpha=(k/(k-1))*(1-sumVarItems/varTot);
+  return alpha;
+}
+
+// Pour chaque paire et chaque technique de comparaison,
+// récupère la matrice 5 critères × N participants des scores normalisés
+function getItemMatrix(pair){
+  const rows=DATA.filter(r=>validPair(r,pair));
+  return CRIT.map(c=>rows.map(r=>normScore(r[`${pair}_${c}`],r[`${pair}_premier`],pair)).filter(v=>v!==null));
+}
+
+// Aussi : alpha sur les 5 critères pour chaque technique (scores agrégés par participant)
+function getTechItemMatrix(tech){
+  return CRIT.map(c=>DATA.map(r=>perParticipantScore(r,c,tech)).filter(v=>v!==null));
+}
+
+function alphaLabel(a){
+  if(a===null)return{txt:'N/A',col:'var(--text3)',desc:'Données insuffisantes'};
+  if(a>0.9) return{txt:'Excellente',col:'#059669',desc:'Cohérence très forte — items potentiellement redondants'};
+  if(a>0.8) return{txt:'Bonne',col:'#2563eb',desc:'Bonne cohérence interne'};
+  if(a>0.7) return{txt:'Acceptable',col:'#7c3aed',desc:'Cohérence satisfaisante'};
+  if(a>0.6) return{txt:'Questionnable',col:'#d97706',desc:'Cohérence faible à modérée'};
+  return{txt:'Faible',col:'#dc2626',desc:'Les critères mesurent des dimensions distinctes'};
+}
+
+function alphaBar(a){
+  if(a===null)return'';
+  const pct=Math.max(0,Math.min(100,a*100));
+  const lbl=alphaLabel(a);
+  return`<div style="margin-top:6px">
+    <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+      <div style="width:${pct}%;height:100%;background:${lbl.col};border-radius:4px"></div>
+    </div>
+  </div>`;
+}
+
+function tCronbach(){
+  // 1. Alpha par paire (5 critères = items, N participants = observations)
+  const pairAlphas=PAIRS.map(pair=>{
+    const mat=getItemMatrix(pair);
+    const ns=mat.map(col=>col.length);
+    const minN=Math.min(...ns);
+    // Align to same participants
+    const rows=DATA.filter(r=>validPair(r,pair));
+    const aligned=CRIT.map(c=>
+      rows.map(r=>normScore(r[`${pair}_${c}`],r[`${pair}_premier`],pair)).filter(v=>v!==null)
+    );
+    // Only keep participants with all 5 criteria valid
+    const full=rows.map((_,i)=>CRIT.map(c=>{
+      const v=normScore(rows[i][`${pair}_${c}`],rows[i][`${pair}_premier`],pair);
+      return v;
+    })).filter(row=>row.every(v=>v!==null));
+    const transposed=CRIT.map((_,ci)=>full.map(row=>row[ci]));
+    const alpha=transposed[0].length>=3?cronbachAlpha(transposed):null;
+    // Item-total correlations
+    const itc=CRIT.map((_,ci)=>{
+      const item=transposed[ci];
+      const rest=CRIT.map((_,cj)=>transposed[cj]).filter((_,cj)=>cj!==ci);
+      const restSum=item.map((_,i)=>rest.reduce((s,col)=>s+col[i],0));
+      return pearsonR(item,restSum);
+    });
+    return{pair,alpha,n:full.length,itc};
+  });
+
+  // 2. Alpha global sur toutes les paires combinées (5 critères × tous scores)
+  const allRows=[];
+  DATA.forEach(row=>{
+    PAIRS.forEach(pair=>{
+      if(!validPair(row,pair))return;
+      const scores=CRIT.map(c=>normScore(row[`${pair}_${c}`],row[`${pair}_premier`],pair));
+      if(scores.every(v=>v!==null))allRows.push(scores);
+    });
+  });
+  const globalMat=CRIT.map((_,ci)=>allRows.map(row=>row[ci]));
+  const alphaGlobal=cronbachAlpha(globalMat);
+  const lbGlobal=alphaLabel(alphaGlobal);
+
+  // 3. Alpha par technique (5 critères sur scores agrégés par participant)
+  const techAlphas=TECHS.map(tech=>{
+    const full=DATA.map(row=>{
+      const scores=CRIT.map(c=>perParticipantScore(row,c,tech));
+      return scores.every(v=>v!==null)?scores:null;
+    }).filter(v=>v!==null);
+    const mat=CRIT.map((_,ci)=>full.map(row=>row[ci]));
+    const alpha=full.length>=3?cronbachAlpha(mat):null;
+    const itc=CRIT.map((_,ci)=>{
+      const item=mat[ci];
+      const rest=mat.filter((_,cj)=>cj!==ci);
+      const restSum=item.map((_,i)=>rest.reduce((s,col)=>s+col[i],0));
+      return pearsonR(item,restSum);
+    });
+    return{tech,alpha,n:full.length,itc};
+  });
+
+  // 4. Inter-item correlations (global)
+  const interR=CRIT.map((_,ci)=>CRIT.map((_,cj)=>{
+    if(ci===cj)return 1;
+    return pearsonR(globalMat[ci],globalMat[cj]);
+  }));
+
+  return`
+  <div class="note">
+    L'alpha de Cronbach mesure la <strong>cohérence interne</strong> des 5 critères.
+    Un alpha élevé (> 0.7) indique qu'ils mesurent un même construit latent et peuvent être agrégés en score global.
+    Un alpha faible indique des dimensions perceptives indépendantes.
+    <br><br>
+    <strong>Trois niveaux de calcul ici :</strong><br>
+    • <strong>Alpha global</strong> — 30 participants × 6 paires = 180 observations. Signification : quand un participant préfère un extrait sur un critère, le préfère-t-il aussi sur les autres ?
+    ⚠️ Les 6 paires d'un même participant ne sont pas indépendantes — alpha par paire plus rigoureux.<br>
+    • <strong>Alpha par paire</strong> — 30 observations indépendantes par paire. Le plus pertinent : "les 5 critères convergent-ils vers le même jugement lors de la comparaison XY ?"<br>
+    • <strong>Alpha par technique</strong> — scores agrégés par participant. "Les 5 critères sont-ils cohérents pour évaluer cette technique ?"
+  </div>
+
+  <div class="row-4" style="margin-bottom:16px">
+    <div class="card" style="grid-column:span 2">
+      <div class="card-title">Alpha global — tous scores · tous participants</div>
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:.5rem">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:36px;font-weight:500;color:${lbGlobal.col}">${alphaGlobal!==null?alphaGlobal.toFixed(3):'N/A'}</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:${lbGlobal.col}">${lbGlobal.txt}</div>
+          <div style="font-size:11px;color:var(--text3)">${lbGlobal.desc}</div>
+        </div>
+      </div>
+      ${alphaBar(alphaGlobal)}
+      <div style="font-size:11px;color:var(--text3);margin-top:.5rem">${allRows.length} observations · k=5 items</div>
+    </div>
+    <div class="card" style="grid-column:span 2">
+      <div class="card-title">Matrice de corrélations inter-items</div>
+      <table style="font-size:11px">
+        <thead><tr><th></th>${CRIT.map(c=>`<th style="text-align:center">${CRIT_L[c].slice(0,5)}.</th>`).join('')}</tr></thead>
+        <tbody>${CRIT.map((c,ci)=>`<tr>
+          <th style="text-align:right;padding-right:6px;white-space:nowrap">${CRIT_L[c]}</th>
+          ${interR[ci].map((r,cj)=>{
+            if(ci===cj)return`<td style="text-align:center;background:var(--border);border-radius:3px" class="mono">—</td>`;
+            const col=r>0.5?'#059669':r>0.3?'#2563eb':r>0.1?'#d97706':'#9ca3af';
+            return`<td style="text-align:center" class="mono" style="color:${col}">${r.toFixed(2)}</td>`;
+          }).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">Alpha de Cronbach par technique (scores agrégés par participant)</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">Pour chaque technique, les 5 critères sont-ils cohérents entre eux quand on regarde les scores de cette technique ?</p>
+    <div class="row-4">
+      ${techAlphas.map(({tech,alpha,n,itc})=>{
+        const lb=alphaLabel(alpha);
+        return`<div class="tc" style="border-color:${alpha>0.7?T_COL[tech]:'var(--border)'}">
+          <div class="tc-head"><span class="tc-dot" style="background:${T_COL[tech]}"></span><span class="tc-label">Extrait ${tech}</span></div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:24px;color:${lb.col}">${alpha!==null?alpha.toFixed(3):'N/A'}</div>
+          <div style="font-size:11px;font-weight:600;color:${lb.col};margin-top:3px">${lb.txt}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${T_LABEL[tech]}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">n=${n}</div>
+          ${alphaBar(alpha)}
+          <div style="margin-top:.75rem;font-size:10px;color:var(--text3)">Corr. item-total :</div>
+          ${CRIT.map((c,ci)=>`<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:2px">
+            <span style="color:var(--text3)">${CRIT_L[c].slice(0,8)}.</span>
+            <span class="mono" style="color:${Math.abs(itc[ci])>0.4?T_COL[tech]:'var(--text2)'}">${itc[ci].toFixed(2)}</span>
+          </div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Alpha de Cronbach par paire de comparaison</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:1rem">Pour chaque paire, les 5 critères convergent-ils vers un même jugement ?</p>
+    <table>
+      <thead><tr>
+        <th>Paire</th><th>Comparaison</th><th>n</th><th>Alpha (α)</th><th>Interprétation</th>
+        ${CRIT.map(c=>`<th style="text-align:center">r item-total<br>${CRIT_L[c].slice(0,5)}.</th>`).join('')}
+      </tr></thead>
+      <tbody>${pairAlphas.map(({pair,alpha,n,itc})=>{
+        const[x,y]=pair.split('');
+        const lb=alphaLabel(alpha);
+        return`<tr>
+          <td style="font-weight:700;font-family:'Instrument Serif',serif">${pair}</td>
+          <td style="font-size:11px"><span style="color:${T_COL[x]}">${T_LABEL[x].split(' ')[0]} ${x}</span> <span style="color:var(--text3)">vs</span> <span style="color:${T_COL[y]}">${T_LABEL[y].split(' ')[0]} ${y}</span></td>
+          <td class="mono">${n}</td>
+          <td class="mono" style="font-size:16px;font-weight:500;color:${lb.col}">${alpha!==null?alpha.toFixed(3):'N/A'}</td>
+          <td style="color:${lb.col};font-weight:600;font-size:12px">${lb.txt}<div style="font-size:10px;font-weight:400;color:var(--text3)">${lb.desc}</div></td>
+          ${itc.map(r=>`<td class="mono" style="text-align:center;color:${Math.abs(r)>0.4?'#059669':'var(--text2)'}">${r.toFixed(2)}</td>`).join('')}
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    <div style="margin-top:1rem;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:.75rem">
+      <strong>r item-total :</strong> corrélation entre un critère et la somme des 4 autres. Une valeur > 0.4 indique que le critère contribue bien à la cohérence de l'ensemble.
+    </div>
+  </div>`;
+}
+
+// ── ANALYSE CROISÉE ───────────────────────────────────────────────────────────
+function tCross(){
+  const GROUPS=[
+    {id:'pro',label:'Profil professionnel',split:r=>r.pro==='Oui'?'Professionnel':'Non-professionnel'},
+    {id:'aud',label:'Profil audiophile',split:r=>({Oui:'Audiophile','Un peu':'Intermédiaire',Non:'Non-audiophile'}[r.audiophile]||r.audiophile),mainPair:['Audiophile','Non-audiophile']},
+    {id:'dev',label:"Système d'écoute",split:r=>r.device.includes('Casque')?'Casque / écouteurs':'Enceintes'},
+    {id:'freq',label:"Fréquence d'écoute",split:r=>r.freq.includes('heures')?'Intensif (plusieurs h/j)':'Occasionnel'},
+    {id:'pop',label:'Affinité pop/rap',split:r=>r.pop==='Oui'?'Fan de pop/rap':'Autre',mainPair:['Fan de pop/rap','Autre']},
+    {id:'age',label:"Tranche d'âge",split:r=>{const a=parseInt(r.age);return a<25?'18–24 ans':a<29?'25–28 ans':'29+ ans';},mainPair:['18–24 ans','29+ ans']},
+  ];
+
+  const cLabel=CRIT_L[crossCrit];
+
+  let html=`
+  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+    <span class="section-title" style="margin-bottom:0">Critère analysé :</span>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">${CRIT.map(c=>`<button class="crit-btn ${crossCrit===c?'on':''}" onclick="setCrossCrit('${c}')">${CRIT_L[c]}</button>`).join('')}</div>
+  </div>
+  <div class="note">Pour chaque variable, comparaison des scores de technique <strong>${cLabel}</strong> entre sous-groupes. Test t de Welch H₀ : les deux groupes perçoivent la technique de façon identique.</div>
+  ${sigLegend()}`;
+
+  GROUPS.forEach(g=>{
+    const groups={};
+    DATA.forEach(r=>{const k=g.split(r);if(!groups[k])groups[k]=[];groups[k].push(r);});
+    const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+    if(gkeys.length<2)return;
+
+    // Main pair for Welch test
+    const [kA,kB]=g.mainPair||[gkeys[0],gkeys[1]];
+    const grpA=groups[kA]||[],grpB=groups[kB]||[];
+
+    // Scores per group per technique
+    const scoresPerGroup={};
+    gkeys.forEach(k=>{scoresPerGroup[k]=techScores(crossCrit,groups[k]);});
+
+    // Welch tests per technique between kA and kB
+    const welchByTech={};
+    TECHS.forEach(t=>{
+      const vA=getNormVals(crossCrit,grpA)[t];
+      const vB=getNormVals(crossCrit,grpB)[t];
+      if(vA.length>=2&&vB.length>=2)welchByTech[t]=welch(vA,vB);
+    });
+
+    // Delta: score_B - score_A per technique
+    const deltas={};
+    TECHS.forEach(t=>{
+      const sA=scoresPerGroup[kA]?.[t],sB=scoresPerGroup[kB]?.[t];
+      deltas[t]=(sA!==null&&sB!==null)?sB-sA:null;
+    });
+
+    html+=`<div class="group-card">
+      <div class="group-title">${g.label}</div>
+      <div class="group-sub">${gkeys.map(k=>`${k} (n=${groups[k].length})`).join(' · ')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div>
+          <div class="card-title">Scores par technique — ${cLabel}</div>
+          <div style="position:relative;height:200px"><canvas id="cross-${g.id}"></canvas></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:.5rem">
+            ${gkeys.map((k,i)=>`<span class="leg"><span class="leg-dot" style="background:${['#374151','#9ca3af','#d1d5db'][i]||'#ccc'}"></span>${k}</span>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div class="card-title">Test de Welch — ${kA} vs ${kB}</div>
+          <div style="margin-bottom:.75rem">
+            ${TECHS.map(t=>{
+              const w=welchByTech[t];
+              const sA=scoresPerGroup[kA]?.[t],sB=scoresPerGroup[kB]?.[t];
+              const d=deltas[t];
+              if(!w)return'';
+              return`<div class="welch-row">
+                <div class="welch-tech" style="background:${T_COL[t]}">${t}</div>
+                <div style="flex:1">
+                  <div style="font-size:11px;color:var(--text3)">${T_LABEL[t]}</div>
+                  <div style="font-size:11px;display:flex;gap:8px;margin-top:1px">
+                    <span>${kA} : <span class="mono">${sA>=0?'+':''}${sA.toFixed(2)}</span></span>
+                    <span>${kB} : <span class="mono">${sB>=0?'+':''}${sB.toFixed(2)}</span></span>
+                    ${d!==null?`<span>Δ : <span class="mono ${d>0?'delta-pos':'delta-neg'}">${d>0?'+':''}${d.toFixed(2)}</span></span>`:''}
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+                  ${pvBadge(w.p)}
+                  <span style="font-size:10px;color:var(--text3)">t=${w.t.toFixed(2)}, df=${w.df.toFixed(1)}</span>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="background:var(--bg);border-radius:4px;padding:.6rem .75rem;font-size:11px;color:var(--text3)">
+            Δ = score(${kB}) − score(${kA}) · Test bilatéral H₀ : Δ = 0
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  return html;
+}
+
+// ── PARTICIPANTS ──────────────────────────────────────────────────────────────
+function tParticipants(){
+  const ages=DATA.map(r=>parseInt(r.age)).filter(a=>!isNaN(a));
+  const avg=(ages.reduce((a,b)=>a+b,0)/ages.length).toFixed(1);
+  function fc(key){const c={};DATA.forEach(r=>{c[r[key]]=(c[r[key]]||0)+1;});return c;}
+  function barGrp(title,obj){
+    const mx=Math.max(...Object.values(obj));
+    return`<div class="card-title" style="margin-top:1.25rem">${title}</div>
+    ${Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="font-size:11px;color:var(--text2);width:200px;flex-shrink:0">${k}</span>
+      <div style="flex:1;height:8px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div style="width:${v/mx*100}%;height:100%;background:var(--text3);border-radius:3px"></div>
+      </div>
+      <span class="mono" style="font-size:11px;color:var(--text2);width:24px;text-align:right">${v}</span>
+    </div>`).join('')}`;
+  }
+  return`
+  <div class="stat-row">
+    <div class="stat-m"><div class="stat-m-val">${N}</div><div class="stat-m-label">Participants</div></div>
+    <div class="stat-m"><div class="stat-m-val">${avg}</div><div class="stat-m-label">Âge moyen</div></div>
+    <div class="stat-m"><div class="stat-m-val">${Math.min(...ages)}–${Math.max(...ages)}</div><div class="stat-m-label">Plage d'âge</div></div>
+    <div class="stat-m"><div class="stat-m-val">${DATA.filter(r=>r.pro==='Oui').length}</div><div class="stat-m-label">Professionnels</div></div>
+    <div class="stat-m"><div class="stat-m-val">${DATA.filter(r=>r.audiophile==='Oui').length}</div><div class="stat-m-label">Audiophiles</div></div>
+    <div class="stat-m"><div class="stat-m-val">${DATA.filter(r=>r.device.includes('Casque')).length}</div><div class="stat-m-label">Au casque</div></div>
+  </div>
+  <div class="row">
+    <div class="card">
+      ${barGrp("Fréquence d'écoute",fc('freq'))}
+      ${barGrp("Système d'écoute",fc('device'))}
+    </div>
+    <div class="card">
+      ${barGrp("Affinité musiques actuelles",fc('pop'))}
+      ${barGrp("Profil audiophile",fc('audiophile'))}
+      ${barGrp("Professionnel du son",fc('pro'))}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Distribution des âges</div>
+    <div class="chart-wrap-sm"><canvas id="age-chart"></canvas></div>
+  </div>`;
+}
+
+// ── INIT CHARTS ───────────────────────────────────────────────────────────────
+function initCharts(){
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{grid:{color:'#e4dfd8'},ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}};
+  if(tab==='overview'){
+    mkChart('radar',{type:'radar',data:{
+      labels:CRIT.map(c=>CRIT_L[c]),
+      datasets:TECHS.map(t=>({label:`Extrait ${t}`,
+        data:CRIT.map(c=>SC[c][t]),
+        borderColor:T_COL[t],backgroundColor:T_COL[t]+'18',
+        pointBackgroundColor:T_COL[t],borderWidth:1.5,pointRadius:2}))
+    },options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:8,font:{size:10}}}},
+      scales:{r:{min:-2,max:2,ticks:{stepSize:1,font:{size:9}},pointLabels:{font:{size:11}}}}}});
+  }
+  if(tab==='corr'){
+    // Radar showing average r per criterion with all others
+    const obs=[];
+    DATA.forEach(row=>{PAIRS.forEach(pair=>{
+      if(!validPair(row,pair))return;
+      const scores=CRIT.map(c=>normScore(row[`${pair}_${c}`],row[`${pair}_premier`],pair));
+      if(scores.every(v=>v!==null))obs.push(scores);
+    });});
+    const cols=CRIT.map((_,ci)=>obs.map(row=>row[ci]));
+    // Mean |r| with all other criteria per criterion
+    const avgR=CRIT.map((_,i)=>{
+      const rs=CRIT.map((_,j)=>{
+        if(i===j)return null;
+        const {r}=pearsonTest(cols[i],cols[j]);return Math.abs(r);
+      }).filter(v=>v!==null);
+      return rs.reduce((a,b)=>a+b,0)/rs.length;
+    });
+    const CRIT_COLORS=['#d97706','#2563eb','#059669','#7c3aed','#dc2626'];
+    mkChart('corr-radar',{type:'radar',data:{
+      labels:CRIT.map(c=>CRIT_L[c]),
+      datasets:[{
+        label:'|r| moyen avec les autres critères',
+        data:avgR,
+        backgroundColor:'rgba(37,99,235,.1)',
+        borderColor:'#2563eb',
+        pointBackgroundColor:CRIT_COLORS,
+        pointRadius:5,
+        borderWidth:1.5,
+      }]
+    },options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10}}}},
+      scales:{r:{min:0,max:0.8,ticks:{stepSize:.2,font:{size:9}},
+        pointLabels:{font:{size:11}}}}
+    }});
+  }
+  if(tab==='tendance'){
+    const consist=DATA.map(row=>{
+      const sds=PAIRS.map(pair=>intraConsistency(row,pair)).filter(v=>v!==null);
+      return sds.length?sds.reduce((a,b)=>a+b,0)/sds.length:null;
+    }).filter(v=>v!==null).sort((a,b)=>a-b);
+    mkChart('consist-chart',{type:'bar',data:{
+      labels:consist.map((_,i)=>`P${i+1}`),
+      datasets:[{
+        data:consist,
+        backgroundColor:consist.map(v=>v<1?'#059669aa':v<2?'#2563ebaa':v<2.5?'#d97706aa':'#dc2626aa'),
+        borderColor:consist.map(v=>v<1?'#059669':v<2?'#2563eb':v<2.5?'#d97706':'#dc2626'),
+        borderWidth:1,borderRadius:3,
+      }]
+    },options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`SD moyen : ${ctx.raw.toFixed(2)}`}}},
+      scales:{
+        y:{min:0,max:4,grid:{color:'#e4dfd8'},ticks:{font:{size:9}},
+          title:{display:true,text:'Écart-type intra-participant',font:{size:9}}},
+        x:{ticks:{display:false}}
+      }
+    }});
+  }
+  if(tab==='pairwise'){
+    const sc=SC[pwCrit];
+    mkChart('pw-bars',{type:'bar',data:{
+      labels:TECHS.map(t=>`Extrait ${t}`),
+      datasets:[{
+        data:TECHS.map(t=>sc[t]),
+        backgroundColor:TECHS.map(t=>T_COL[t]+'55'),
+        borderColor:TECHS.map(t=>T_COL[t]),
+        borderWidth:1.5,borderRadius:4,
+      }]
+    },options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.raw>=0?'+':''}${ctx.raw.toFixed(3)}`}}},
+      scales:{
+        y:{min:-2.5,max:2.5,grid:{color:'#e4dfd8'},ticks:{font:{size:9}},
+          title:{display:true,text:'Score moyen normalisé',font:{size:9}}},
+        x:{ticks:{font:{size:9}}}
+      }
+    }});
+  }
+  if(tab==='criteria'){
+    CRIT.forEach(c=>{
+      const sc=SC[c];const tt=TT[c];
+      mkChart(`bc-${c}`,{type:'bar',data:{
+        labels:TECHS.map(t=>`Extrait ${t}`),
+        datasets:[{data:TECHS.map(t=>sc[t]),
+          backgroundColor:TECHS.map(t=>T_COL[t]+'55'),
+          borderColor:TECHS.map(t=>T_COL[t]),borderWidth:1,borderRadius:3}]
+      },options:{...base,
+        plugins:{...base.plugins,
+          annotation:{annotations:TECHS.reduce((a,t,i)=>{
+            const test=tt[t];if(test&&test.p<0.1){a[`l${i}`]={type:'label',xValue:i,yValue:sc[t],content:pvSymbol(test.p),font:{size:10}};}return a;},{})}},
+        scales:{y:{min:-2.5,max:2.5,grid:{color:'#e4dfd8'},ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+    });
+  }
+  if(tab==='cross'){
+    const GROUPS=[
+      {id:'pro',split:r=>r.pro==='Oui'?'Professionnel':'Non-professionnel'},
+      {id:'aud',split:r=>({Oui:'Audiophile','Un peu':'Intermédiaire',Non:'Non-audiophile'}[r.audiophile]||r.audiophile)},
+      {id:'dev',split:r=>r.device.includes('Casque')?'Casque / écouteurs':'Enceintes'},
+      {id:'freq',split:r=>r.freq.includes('heures')?'Intensif (plusieurs h/j)':'Occasionnel'},
+      {id:'pop',split:r=>r.pop==='Oui'?'Fan de pop/rap':'Autre'},
+      {id:'age',split:r=>{const a=parseInt(r.age);return a<25?'18–24 ans':a<29?'25–28 ans':'29+ ans';}},
+    ];
+    const grpColors=['#374151','#9ca3af','#d1d5db'];
+    GROUPS.forEach(g=>{
+      const el=document.getElementById(`cross-${g.id}`);if(!el)return;
+      const groups={};DATA.forEach(r=>{const k=g.split(r);if(!groups[k])groups[k]=[];groups[k].push(r);});
+      const gkeys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+      const datasets=gkeys.map((k,i)=>({
+        label:k,
+        data:TECHS.map(t=>{const sc=techScores(crossCrit,groups[k]);return sc[t];}),
+        backgroundColor:TECHS.map(t=>T_COL[t]+(i===0?'cc':'44')),
+        borderColor:TECHS.map(t=>T_COL[t]),
+        borderWidth:i===0?1.5:1,
+        borderRadius:3,
+        borderDash:i===0?[]:[4,2],
+      }));
+      mkChart(`cross-${g.id}`,{type:'bar',data:{
+        labels:TECHS.map(t=>`Extrait ${t}`),
+        datasets,
+      },options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label} : ${ctx.raw>=0?'+':''}${ctx.raw.toFixed(2)}`}}
+        },
+        scales:{
+          y:{min:-3,max:3,grid:{color:'#e4dfd8'},ticks:{font:{size:9}},
+            title:{display:true,text:'Score normalisé',font:{size:9}}},
+          x:{ticks:{font:{size:9}}}
+        }
+      }});
+    });
+  }
+  if(tab==='participants'){
+    const ages=DATA.map(r=>parseInt(r.age)).filter(a=>!isNaN(a));
+    const bins=[[18,22],[22,26],[26,30],[30,99]];
+    mkChart('age-chart',{type:'bar',data:{
+      labels:['18–21','22–25','26–29','30+'],
+      datasets:[{data:bins.map(([a,b])=>ages.filter(x=>x>=a&&x<b).length),
+        backgroundColor:'#18171530',borderColor:'#18171560',borderWidth:1,borderRadius:3}]
+    },options:{...base}});
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+document.getElementById('hdr-stats').innerHTML=
+  [`<strong>${N}</strong> participants`,`<strong>4</strong> techniques`,`<strong>5</strong> critères`,`<strong>6</strong> paires`]
+  .map(s=>`<span>${s}</span>`).join('<span style="color:var(--border2)"> · </span>');
+render();
+</script>
+</body>
+</html>
